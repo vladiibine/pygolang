@@ -6,53 +6,14 @@ import sys
 # and don't change their order
 # from ply import yacc, lex
 import ply.yacc as yacc
-import ply.lex as lex
 
 # !!!!!!! STATE  KEPT  AT  MODULE-LEVEL
 # State(global vars). TODO: Remove this after making the code work
+from . import lexer_setup
+from .common_grammar import tokens
+
 PROGRAM_STATE = None
 IO_CALLBACK = None  # type: IO
-
-tokens = (
-    'NAME', 'NUMBER',
-    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
-    'LPAREN', 'RPAREN',
-)
-
-# Tokens
-
-t_PLUS = r'\+'
-t_MINUS = r'-'
-t_TIMES = r'\*'
-t_DIVIDE = r'/'
-t_EQUALS = r'='
-t_LPAREN = r'\('
-t_RPAREN = r'\)'
-t_NAME = r'[a-zA-Z_][a-zA-Z0-9_]*'
-
-
-def t_NUMBER(t):
-    r"""\d+"""
-    try:
-        t.value = int(t.value)
-    except ValueError:
-        IO_CALLBACK.to_stdout("Integer value too large %d" % t.value)
-        t.value = 0
-    return t
-
-
-# Ignored characters
-t_ignore = " \t"
-
-
-def t_newline(t):
-    r"""\n+"""
-    t.lexer.lineno += t.value.count("\n")
-
-
-def t_error(t):
-    IO_CALLBACK.to_stdout("Illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
 
 
 precedence = (
@@ -138,7 +99,7 @@ class IO:
         # for all files, for all sockets, for everything that's IO
 
     def to_stdout(self, stuff):
-        self.stdout.write(stuff)
+        self.stdout.write(str(stuff))
         self.stdout.flush()
 
     def from_stdin(self):
@@ -160,7 +121,7 @@ def main(io=IO(), program_state=None):
     IO_CALLBACK = io
     PROGRAM_STATE = program_state if program_state is not None else {}
 
-    lexer = lex.lex()
+    lexer = lexer_setup.build_lexer(io)
     parser = yacc.yacc()
 
     try:
@@ -170,6 +131,7 @@ def main(io=IO(), program_state=None):
                 instruction_set = io.from_stdin()
 
                 parser.parse(instruction_set)
+                io.to_stdout('\n')
                 # io.to_stdout("You wrote:\n{}".format(instruction_set))
 
             except StopPyGoLangInterpreterError:
