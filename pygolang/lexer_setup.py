@@ -1,3 +1,5 @@
+import contextlib
+
 import ply.lex as lex
 
 ###
@@ -46,10 +48,11 @@ IO_CALLBACK = None
 ###
 
 
+@contextlib.contextmanager
 def build_lexer(io_callback):
-    try:
-        global IO_CALLBACK
-        IO_CALLBACK = io_callback
-        return lex.lex()
-    finally:
-        IO_CALLBACK = None
+    global IO_CALLBACK
+    IO_CALLBACK = io_callback
+
+    yield lex.lex()
+
+    IO_CALLBACK = None

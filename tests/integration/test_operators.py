@@ -29,6 +29,8 @@ class FakeIO(IO):
     def interpreter_prompt(self):
         pass
 
+    newline = interpreter_prompt
+
 
 def test_plus():
     io = FakeIO(['1+1'])
