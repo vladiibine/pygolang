@@ -37,4 +37,4 @@ def test_plus():
 
     assert len(io.out) == 1
 
-    assert io.out[0] == '2'
+    assert io.out[0] == 2
