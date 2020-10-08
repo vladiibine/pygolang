@@ -50,6 +50,9 @@ IO_CALLBACK = None
 
 @contextlib.contextmanager
 def build_lexer(io_callback):
+    # TODO -> legacy! No need to set state on modules, as yacc.yacc and
+    #  lex.lex take as argument an object, whose methods can be used as
+    #   callbacks!
     global IO_CALLBACK
     IO_CALLBACK = io_callback
 
