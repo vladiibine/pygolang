@@ -1,3 +1,7 @@
+# pygolang specific
+parser.out
+parsetab.py
+
 # PyCharm
 .idea/
 
