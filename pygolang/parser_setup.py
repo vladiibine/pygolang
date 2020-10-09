@@ -53,11 +53,16 @@ class PyGoParser:
 
     def p_interpreter_start(self, t):
         """interpreter_start : statement"""
-        return t
+        value = t.slice[1].value
+
+        if value is not None:
+            # this worked for function return statements
+            self.io_callback.to_stdout(value)
+            # self.io_callback.to_stdout(value[0].value)
 
     def p_expression_1(self, t):
         """expression : NUMBER"""
-        t.slice[0].value = t.slice[1:]
+        t.slice[0].value = t.slice[1].value
 
     def p_expression_2(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
@@ -74,7 +79,7 @@ class PyGoParser:
                 # ...oh well, lots of test will force me to
                 # decide
                 # t.slice[0].value = instruction.value
-                value = instruction.value[0].value
+                value = instruction.value
                 break
 
         t.slice[0].value = value
@@ -92,6 +97,7 @@ class PyGoParser:
 
     def p_expression_statement(self, t):
         """expression_statement : expression"""
+        # This works for values
         t.slice[0].value = t.slice[1].value
 
     def p_func_statement(self, t):
@@ -117,8 +123,12 @@ class PyGoParser:
                     | assignment_statement
                     | expression_statement
         """
-        return t
-
+        # Expression statements DO have a value!
+        # We'll use this at the interpreter top-level, to
+        # print on the screen something
+        # I mean everyone wants to just write 1+1 and see 2
+        if t.slice[1].type == 'expression_statement':
+            t.slice[0].value = t.slice[1].value
 
     def p_func_body(self, t):
         """func_body : assignment_statement
@@ -152,13 +162,13 @@ class PyGoParser:
                       | expression DIVIDE expression"""
 
         if t[2] == '+':
-            t[0] = t[1][0].value + t[3][0].value
+            t[0] = t[1] + t[3]
         elif t[2] == '-':
-            t[0] = t[1][0].value - t[3][0].value
+            t[0] = t[1] - t[3]
         elif t[2] == '*':
-            t[0] = t[1][0].value * t[3][0].value
+            t[0] = t[1] * t[3]
         elif t[2] == '/':
-            t[0] = t[1][0].value / t[3][0].value
+            t[0] = t[1] / t[3]
     #
     #
     # def p_expression_uminus(t):
@@ -183,6 +193,10 @@ class PyGoParser:
     #     except LookupError:
     #         IO_CALLBACK.to_stderr("pygo: Undefined name '%s'" % t[1])
     #         t[0] = 0
+
+    def p_expression_name(self, t):
+        """expression : NAME"""
+        t.slice[0].value = self.program_state[t.slice[1].value]
 
     def p_error(self, t):
         self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)
