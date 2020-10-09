@@ -1,35 +1,6 @@
-from pygolang.interpreter import main, StopPyGoLangInterpreterError, IO
+from pygolang.interpreter import main
 
-
-class FakeIO(IO):
-    def __init__(self, in_):
-        """
-        :param list[str] in_:
-        """
-        self.in_ = in_
-        self.out = []
-        self.input_generator = None
-        super().__init__()
-
-    def from_stdin(self):
-        def iterate_over_stdin():
-            for line in self.in_:
-                yield line
-
-            raise StopPyGoLangInterpreterError
-
-        if not self.input_generator:
-            self.input_generator = iterate_over_stdin()
-
-        return next(self.input_generator)
-
-    def to_stdout(self, stuff):
-        self.out.append(stuff)
-
-    def interpreter_prompt(self):
-        pass
-
-    newline = interpreter_prompt
+from tests.integration.io_callback_fixture import FakeIO
 
 
 def test_plus():
@@ -37,6 +8,6 @@ def test_plus():
 
     main(io)
 
-    assert len(io.out) == 1
+    assert len(io.stdout) == 1
 
-    assert io.out[0] == 2
+    assert io.stdout[0] == 2

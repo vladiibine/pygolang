@@ -7,7 +7,7 @@ import ply.lex as lex
 # Don't just rename them, everything will break!
 
 # Tokens
-from .common_grammar import tokens
+from .common_grammar import tokens, keywords
 
 t_PLUS = r'\+'
 t_MINUS = r'-'
@@ -16,7 +16,19 @@ t_DIVIDE = r'/'
 t_EQUALS = r'='
 t_LPAREN = r'\('
 t_RPAREN = r'\)'
-t_NAME = r'[a-zA-Z_][a-zA-Z0-9_]*'
+t_LBRACE = r'{'
+t_RBRACE = r'}'
+t_LBRACKET = r'\['
+t_RBRACKET = r'\]'
+t_COMMA = r','
+
+
+def t_NAME(t):
+    r"""[a-zA-Z_][a-zA-Z0-9_]*"""
+    if t.value.upper() in keywords:
+        t.type = t.value.upper()
+
+    return t
 
 
 def t_NUMBER(t):

@@ -34,6 +34,10 @@ class IO:
         self.stdout.write(str(stuff))
         self.stdout.flush()
 
+    def to_stderr(self, stuff):
+        self.stderr.write(str(stuff))
+        self.stderr.flush()
+
     def from_stdin(self):
         return self.stdin.readline().lstrip('\n')
 
@@ -52,9 +56,15 @@ def main(io=IO(), program_state=None):
     # and parser are initialized.
 
     program_state = program_state if program_state is not None else {}
+    try:
+        import pydevd; pydevd.settrace('localhost', port=5678)
+    except ImportError:
+        print("\n\n\n")
+        print(">>>VWH>>>: the pydevd module is not installed")
+        print("\n\n\n\n\n")
 
-    with lexer_setup.build_lexer(io) as lexer, \
-            parser_setup.build_parser(io, program_state) as parser:
+    with lexer_setup.build_lexer(io) as lexer:
+        parser = parser_setup.PyGoParser(io, program_state)
 
         while True:
             try:
