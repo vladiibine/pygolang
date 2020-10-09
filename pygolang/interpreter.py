@@ -56,12 +56,12 @@ def main(io=IO(), program_state=None):
     # and parser are initialized.
 
     program_state = program_state if program_state is not None else {}
-    try:
-        import pydevd; pydevd.settrace('localhost', port=5678)
-    except ImportError:
-        print("\n\n\n")
-        print(">>>VWH>>>: the pydevd module is not installed")
-        print("\n\n\n\n\n")
+    # try:
+    #     import pydevd; pydevd.settrace('localhost', port=5678)
+    # except ImportError:
+    #     print("\n\n\n")
+    #     print(">>>VWH>>>: the pydevd module is not installed")
+    #     print("\n\n\n\n\n")
 
     with lexer_setup.build_lexer(io) as lexer:
         parser = parser_setup.PyGoParser(io, program_state)
