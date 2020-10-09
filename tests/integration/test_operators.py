@@ -4,10 +4,13 @@ from tests.integration.io_callback_fixture import FakeIO
 
 
 def test_plus():
-    io = FakeIO(['1+1'])
+    io = FakeIO(['x=1+1'])
 
-    main(io)
+    state = {}
+    main(io, state)
 
-    assert len(io.stdout) == 1
+    assert not io.stdout
+    assert not io.stderr
 
-    assert io.stdout[0] == 2
+    assert 'x' in state
+    assert state['x'] == 2

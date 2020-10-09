@@ -60,16 +60,31 @@ class PyGoParser:
         t.slice[0].value = t.slice[1:]
 
     def p_expression_2(self, t):
-        """expression : NAME RPAREN args_list LPAREN"""
+        """expression : NAME LPAREN args_list RPAREN"""
         # Do stuff like call a function
-        x=0
+        # ...so actually run go code! ....ooooh man, I'm excited! :D
+        func = self.program_state[t.slice[1].value]
+
+        value = None
+        for instruction in func.body:
+            if instruction.type == 'return_statement':
+                # Expecting a list, but this is going to be
+                # buggy, as I haven't decided where I use lists
+                # and where scalar elements
+                # ...oh well, lots of test will force me to
+                # decide
+                # t.slice[0].value = instruction.value
+                value = instruction.value[0].value
+                break
+
+        t.slice[0].value = value
 
     def p_args_list(self, t):
         """args_list : expression
                     | expression COMMA
                     | args_list COMMA expression
         """
-        pass
+        t.slice[0].value = ast.FuncArguments(t.slice[1:])
 
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
@@ -115,6 +130,7 @@ class PyGoParser:
 
     def p_return_statement(self, t):
         """return_statement : RETURN expression"""
+        t.slice[0].value = t.slice[2].value
         return t
 
 
@@ -129,19 +145,20 @@ class PyGoParser:
     #     """statement : RETURN expression"""
 
 
-    # def p_expression_binop(t):
-    #     """expression : expression PLUS expression
-    #                   | expression MINUS expression
-    #                   | expression TIMES expression
-    #                   | expression DIVIDE expression"""
-    #     if t[2] == '+':
-    #         t[0] = t[1] + t[3]
-    #     elif t[2] == '-':
-    #         t[0] = t[1] - t[3]
-    #     elif t[2] == '*':
-    #         t[0] = t[1] * t[3]
-    #     elif t[2] == '/':
-    #         t[0] = t[1] / t[3]
+    def p_expression_binop(self, t):
+        """expression : expression PLUS expression
+                      | expression MINUS expression
+                      | expression TIMES expression
+                      | expression DIVIDE expression"""
+
+        if t[2] == '+':
+            t[0] = t[1][0].value + t[3][0].value
+        elif t[2] == '-':
+            t[0] = t[1][0].value - t[3][0].value
+        elif t[2] == '*':
+            t[0] = t[1][0].value * t[3][0].value
+        elif t[2] == '/':
+            t[0] = t[1][0].value / t[3][0].value
     #
     #
     # def p_expression_uminus(t):

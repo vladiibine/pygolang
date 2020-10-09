@@ -25,3 +25,16 @@ func asdf(name1 int)name2{
     assert 'asdf' in state
     assert isinstance(state['asdf'], ast.Func)
 
+
+def test_function_call():
+    io = FakeIO([
+        """func asdf( name1 int)name2{return 133}""",
+        """x = asdf(3)"""
+    ])
+    state = {}
+
+    main(io, state)
+
+    assert 'x' in state
+    assert state['x'] == 133
+

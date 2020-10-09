@@ -18,3 +18,8 @@ class FuncReturnType:
 class FuncBody:
     def __init__(self, token):
         self.token = token
+
+
+class FuncArguments:
+    def __init__(self, arg_list):
+        self.arg_list = arg_list
