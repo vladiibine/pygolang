@@ -29,8 +29,8 @@ class FuncReturnType:
 
 
 class FuncBody:
-    def __init__(self, token):
-        self.token = token
+    def __init__(self, statements):
+        self.statements = statements
 
 
 class FuncArguments:
@@ -90,5 +90,10 @@ class InterpreterStart:
 
 
 class Root:
+    def __init__(self, value):
+        self.value = value
+
+
+class Return:
     def __init__(self, value):
         self.value = value

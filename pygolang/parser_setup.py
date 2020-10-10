@@ -6,28 +6,8 @@ import ply.yacc as yacc
 from ply.lex import LexToken
 
 from pygolang import ast
-from .common_grammar import tokens, operators
+from .common_grammar import tokens
 
-
-class FunctionBuilder:
-    """This class exists because the ply library is missing features.
-
-    The production rules don't return anything that the parser remembers.
-    They're called only for their side-effects, but they can't have side
-    effects on anything the parser does, so then we need to keep track of
-    parser events (such as when it parsed parts of a function definition)
-    """
-    params = None
-    body = None
-    return_type = None
-
-    @classmethod
-    def clear(cls):
-        cls.params = cls.body = cls.return_type = None
-
-    @classmethod
-    def is_in_progress(cls):
-        return cls.params or cls.body or cls.return_type
 
 #
 # THE END of the "DO NOT TOUCH" section
@@ -121,12 +101,11 @@ class PyGoParser:
                     | expression_statement
                     | func_body func_body
         """
-        t.slice[0].value = t.slice[1:]
+        t.slice[0].value = ast.FuncBody([e.value for e in t.slice[1:]])
 
     def p_return_statement(self, t):
         """return_statement : RETURN expression"""
-        t.slice[0].value = t.slice[2].value
-        return t
+        t.slice[0].value = ast.Return(t.slice[2].value)
 
 
     # def p_compound_statement(t):
