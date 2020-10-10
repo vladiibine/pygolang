@@ -21,7 +21,7 @@ class Runner:
 
     def run(self, code, scopes=None):
         value = None
-        scopes = scopes or []
+        scopes = scopes or [self.state]
 
         if isinstance(code, ast.Root):
             if isinstance(code.value, ast.InterpreterStart):
@@ -46,7 +46,13 @@ class Runner:
         elif isinstance(code, ast.Return):
             value = self.run(code.value, scopes)
 
+        elif isinstance(code, ast.FuncCall):
+            value = self.call_func(code, scopes)
+
         return value
+
+    def set_in_scopes(self, name, value, scopes):
+        scopes[0][name] = value
 
     def run_statement(self, stmt, scopes):
         result = None
@@ -56,16 +62,16 @@ class Runner:
             value = self.run(stmt.value)
 
             # Global scope, until we implement per-something-else scope
-            self.state[key] = value
+            self.set_in_scopes(key, value, scopes)
 
         elif isinstance(stmt, ast.Func):
-            self.state[stmt.name] = stmt
+            self.set_in_scopes(stmt.name, stmt, scopes)
 
         elif isinstance(stmt, ast.Expression):
             result = self.run_expression(stmt, scopes)
 
         elif isinstance(stmt, ast.FuncCall):
-            result = self.call_func(stmt)
+            result = self.call_func(stmt, scopes)
 
         elif isinstance(stmt, ast.Statement):
             result = self.run_statement(stmt.value, scopes)
@@ -85,7 +91,8 @@ class Runner:
 
         elif isinstance(exp, ast.Name):
             # TODO - replace global state with scopes
-            return self.state[exp.value]
+            # return self.state[exp.value]
+            return self.find_in_scopes(exp.value, scopes)
 
         elif isinstance(exp, ast.Operator):
             return self.run_operator(exp, scopes)
@@ -94,15 +101,30 @@ class Runner:
             # we only know how to treat the NAME expression here
             if len(exp.children) == 1:
                 if isinstance(exp.children[0], ast.Name):
-                    return self.state[exp.children[0].value]
+                    # return self.state[exp.children[0].value]
+                    return self.find_in_scopes(exp.children[0].value, scopes)
 
                 elif isinstance(exp.children[0], ast.Leaf):
                     return exp.children[0].value
 
                 elif isinstance(exp.children[1], ast.FuncCall):
-                    return self.call_func(exp.children[1])
+                    return self.call_func(exp.children[1], scopes)
 
                 return self.run_expression(exp.children[0], scopes)
+
+    def find_in_scopes(self, name, scopes):
+        """
+        :param str name:
+        :param list[dict] scopes:
+        :return:
+        """
+        for scope in scopes:
+            if name in scope:
+                return scope[name]
+
+        # well... should raise an error if the name is not in any scope
+        #  BUT it's really the job of the parser to prevent this situation
+
 
     def run_operator(self, operator_expr, scopes):
         """
@@ -119,9 +141,12 @@ class Runner:
 
             return OPERATOR_MAP[operator_expr.operator](operand1, operand2)
 
-    def call_func(self, func_call):
-        func = self.state[func_call.func_name]
-        scope = {}
+    def call_func(self, func_call, scopes):
+        scopes = scopes or []
+        scopes.insert(0, {})
+
+        # func = self.state[func_call.func_name]
+        func = self.find_in_scopes(func_call.func_name, scopes)
 
         # 1. match args to params
         # 2. put them in the scope
@@ -158,14 +183,14 @@ class Runner:
 
         # 1.2. then put in scope the params with the values from the args
         for (pname, ptype), arg_abstrat_value in zip(params, func_call.args.arg_list):
-            arg_value = self.run_expression(arg_abstrat_value, [scope])
+            arg_value = self.run_expression(arg_abstrat_value, scopes)
 
             # TODO -> we don't check for types here, and we shouldn't
             #   What we should do is check types at parse time
             # 2. put the params in the scopt of the function
-            scope[pname] = arg_value
+            scopes[0][pname] = arg_value
 
         # 3. run the function
-        result = self.run(func.body, scopes=[scope])
+        result = self.run(func.body, scopes=scopes)
 
         return result
