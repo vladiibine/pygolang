@@ -10,13 +10,6 @@ def test_prints_expressions_to_stdout():
     ])
     state = {}
 
-    try:
-        import pydevd; pydevd.settrace('localhost', port=5678)
-    except ImportError:
-        print("\n\n\n")
-        print(">>>VWH>>>: the pydevd module is not installed")
-        print("\n\n\n\n\n")
-
     main(io, state)
 
     assert io.stdout

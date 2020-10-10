@@ -70,6 +70,9 @@ class Runner:
         elif isinstance(stmt, ast.Statement):
             result = self.run_statement(stmt.value, scopes)
 
+        elif isinstance(stmt, ast.Leaf):
+            result = stmt.value
+
         return result
 
     def run_expression(self, exp, scopes):
