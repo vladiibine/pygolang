@@ -3,11 +3,15 @@ keywords = (
     'RETURN',
 )
 
+operators = (
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
+)
+
 tokens = keywords + \
+         operators + \
          (
              'NAME',
              'NUMBER',
-             'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
              'LPAREN', 'RPAREN',  # ( )
              'LBRACE', 'RBRACE',  # { }
              'LBRACKET', 'RBRACKET',  # [ ]

@@ -6,7 +6,7 @@ import sys
 # and don't change their order
 # from ply import yacc, lex
 
-from pygolang import parser_setup
+from pygolang import parser_setup, ast_runner
 from . import lexer_setup
 
 
@@ -59,13 +59,16 @@ def main(io=IO(), program_state=None):
 
     with lexer_setup.build_lexer(io) as lexer:
         parser = parser_setup.PyGoParser(io, program_state)
+        runner = ast_runner.Runner(io, program_state)
 
         while True:
             try:
                 io.interpreter_prompt()
                 instruction_set = io.from_stdin()
 
-                parser.parse(instruction_set)
+                code = parser.parse(instruction_set)
+                runner.run(code)
+
                 io.newline()
                 # io.to_stdout("You wrote:\n{}".format(instruction_set))
 

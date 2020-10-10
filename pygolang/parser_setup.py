@@ -3,8 +3,10 @@ import ply.yacc as yacc
 ###
 # Do not just rename variables in the next section!
 # They're used via reflection. Renaming them breaks everything
+from ply.lex import LexToken
+
 from pygolang import ast
-from .common_grammar import tokens
+from .common_grammar import tokens, operators
 
 
 class FunctionBuilder:
@@ -53,57 +55,45 @@ class PyGoParser:
 
     def p_interpreter_start(self, t):
         """interpreter_start : statement"""
-        value = t.slice[1].value
-
-        if value is not None:
-            # this worked for function return statements
-            self.io_callback.to_stdout(value)
-            # self.io_callback.to_stdout(value[0].value)
+        t[0] = ast.Root(ast.InterpreterStart(t[1]))
 
     def p_expression_1(self, t):
         """expression : NUMBER"""
-        t.slice[0].value = t.slice[1].value
+        if t.slice[1].type == 'NUMBER':
+            t.slice[0].value = ast.Number(t.slice[1].value)
 
     def p_expression_2(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
-        # Do stuff like call a function
-        # ...so actually run go code! ....ooooh man, I'm excited! :D
-        func = self.program_state[t.slice[1].value]
-
-        value = None
-        for instruction in func.body:
-            if instruction.type == 'return_statement':
-                # Expecting a list, but this is going to be
-                # buggy, as I haven't decided where I use lists
-                # and where scalar elements
-                # ...oh well, lots of test will force me to
-                # decide
-                # t.slice[0].value = instruction.value
-                value = instruction.value
-                break
-
-        t.slice[0].value = value
+        t[0] = ast.FuncCall(func_name=t[1], args=t[3])
 
     def p_args_list(self, t):
         """args_list : expression
                     | expression COMMA
                     | args_list COMMA expression
         """
-        t.slice[0].value = ast.FuncArguments(t.slice[1:])
+        t.slice[0].value = ast.FuncArguments(
+            # t.slice[1:]
+            # How do I know if these are literals, names or expressions?
+            # ...cuz the definition says they're all expressions I guess
+            [ast.Expression([elem.value]) for elem in t.slice[1:]]
+        )
 
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
-        self.program_state[t[1]] = t[3]
+        t[0] = ast.Assignment(t[1], t[3])
+        # self.program_state[t[1]] = t[3]
 
     def p_expression_statement(self, t):
         """expression_statement : expression"""
         # This works for values
-        t.slice[0].value = t.slice[1].value
+        t[0] = ast.Statement(t.slice[1].value)
+        # t.slice[0].value = t.slice[1].value
 
     def p_func_statement(self, t):
         """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type LBRACE func_body RBRACE """
         self.program_state[t[2]] = ast.Func(
-            args=t.slice[4].value,
+            name=t.slice[2].value,
+            params=t.slice[4].value,
             return_type=t.slice[6].value,
             body=t.slice[8].value)
 
@@ -123,12 +113,7 @@ class PyGoParser:
                     | assignment_statement
                     | expression_statement
         """
-        # Expression statements DO have a value!
-        # We'll use this at the interpreter top-level, to
-        # print on the screen something
-        # I mean everyone wants to just write 1+1 and see 2
-        if t.slice[1].type == 'expression_statement':
-            t.slice[0].value = t.slice[1].value
+        t[0] = ast.Statement(t[1])
 
     def p_func_body(self, t):
         """func_body : assignment_statement
@@ -160,16 +145,12 @@ class PyGoParser:
                       | expression MINUS expression
                       | expression TIMES expression
                       | expression DIVIDE expression"""
+        operator_chars = {'+', '-', '/', '*'}
 
-        if t[2] == '+':
-            t[0] = t[1] + t[3]
-        elif t[2] == '-':
-            t[0] = t[1] - t[3]
-        elif t[2] == '*':
-            t[0] = t[1] * t[3]
-        elif t[2] == '/':
-            t[0] = t[1] / t[3]
-    #
+        if t[2] in operator_chars:
+            t[0] = ast.Operator(t[2], [t[1], t[3]])
+            return
+
     #
     # def p_expression_uminus(t):
     #     """expression : MINUS expression %prec UMINUS"""
@@ -196,7 +177,14 @@ class PyGoParser:
 
     def p_expression_name(self, t):
         """expression : NAME"""
-        t.slice[0].value = self.program_state[t.slice[1].value]
+        # t.slice[0].value = self.program_state[t.slice[1].value]
+
+        if len(t.slice) == 2:
+            if isinstance(t.slice[1], LexToken):
+                if t.slice[1].type == 'NAME':
+                    expression_node = ast.Name(t.slice[1].value)
+
+                    t.slice[0].value = ast.Expression([expression_node])
 
     def p_error(self, t):
         self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)

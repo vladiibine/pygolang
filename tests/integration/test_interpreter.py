@@ -2,7 +2,7 @@ from pygolang.interpreter import main
 from tests.integration.io_callback_fixture import FakeIO
 
 
-def test_function_call():
+def test_prints_expressions_to_stdout():
     io = FakeIO([
         """func asdf( name1 int)name2{return 133}""",
         """asdf(3)""",
@@ -10,10 +10,14 @@ def test_function_call():
     ])
     state = {}
 
-    main(io, state)
+    try:
+        import pydevd; pydevd.settrace('localhost', port=5678)
+    except ImportError:
+        print("\n\n\n")
+        print(">>>VWH>>>: the pydevd module is not installed")
+        print("\n\n\n\n\n")
 
-    # assert 'x' in state
-    # assert state['x'] == 133
+    main(io, state)
 
     assert io.stdout
     assert len(io.stdout) == 2

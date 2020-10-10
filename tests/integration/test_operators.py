@@ -7,6 +7,7 @@ def test_plus():
     io = FakeIO(['x=1+1'])
 
     state = {}
+
     main(io, state)
 
     assert not io.stdout
