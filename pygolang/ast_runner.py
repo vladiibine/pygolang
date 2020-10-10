@@ -114,6 +114,8 @@ class Runner:
                     return self.call_func(exp.children[1], scopes)
 
                 return self.run_expression(exp.children[0], scopes)
+        elif isinstance(exp, ast.FuncCall):
+            return self.call_func(exp, scopes)
 
     def find_in_scopes(self, name, scopes):
         """

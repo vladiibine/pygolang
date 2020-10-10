@@ -51,3 +51,17 @@ def test_interpreter_prints_out_things():
     assert io.stdout
     assert len(io.stdout) == 3
     assert io.stdout == [1, 2, 3]
+
+
+def test_operators_and_expressions():
+    io = FakeIO([
+        "func f()int{return 2}",
+        "f() + 2"
+    ])
+
+    state = {}
+
+    main(io, state)
+
+    assert io.stdout == [4]
+

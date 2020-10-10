@@ -171,4 +171,10 @@ class PyGoParser:
                     t.slice[0].value = ast.Expression([expression_node])
 
     def p_error(self, t):
-        self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)
+        if t and hasattr(t, 'value'):
+            self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)
+        raise PyGoConsoleLogoffError
+
+
+class PyGoConsoleLogoffError(Exception):
+    pass

@@ -7,6 +7,7 @@ import sys
 # from ply import yacc, lex
 
 from pygolang import parser_setup, ast_runner
+from pygolang.parser_setup import PyGoConsoleLogoffError
 from . import lexer_setup
 
 
@@ -61,6 +62,13 @@ def main(io=IO(), program_state=None):
         parser = parser_setup.PyGoParser(io, program_state)
         runner = ast_runner.Runner(io, program_state)
 
+        # try:
+        #     import pydevd; pydevd.settrace('localhost', port=5678)
+        # except ImportError:
+        #     print("\n\n\n")
+        #     print(">>>VWH>>>: the pydevd module is not installed")
+        #     print("\n\n\n\n\n")
+
         while True:
             try:
                 io.interpreter_prompt()
@@ -77,6 +85,29 @@ def main(io=IO(), program_state=None):
 
             except PyLangRuntimeError as err:
                 io.to_stdout("Error: {}".format(err))
+
+            except KeyboardInterrupt:
+                try:
+                    io.newline()
+                    io.to_stdout("Do you really want to quit? [y/n] ")
+                    reply = io.from_stdin()
+
+                    if (reply.strip() or '').lower() == 'y':
+                        return
+                except KeyboardInterrupt:
+                    return
+
+            except PyGoConsoleLogoffError:
+                return
+
+            except Exception as err:
+                import traceback as tb
+
+                io.to_stderr(
+                    "Unknown error occurred. Traceback for debugging:"
+                )
+                io.to_stderr(tb.format_exc())
+                io.to_stdout(err)
 
 
 if __name__ == '__main__':
