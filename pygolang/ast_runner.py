@@ -76,6 +76,9 @@ class Runner:
         elif isinstance(stmt, ast.Statement):
             result = self.run_statement(stmt.value, scopes)
 
+        elif isinstance(stmt, ast.Operator):
+            result = self.run_operator(stmt, scopes)
+
         elif isinstance(stmt, ast.Leaf):
             result = stmt.value
 

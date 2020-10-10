@@ -46,6 +46,10 @@ class PyGoParser:
         """expression : NAME LPAREN args_list RPAREN"""
         t[0] = ast.FuncCall(func_name=t[1], args=t[3])
 
+    def p_expression_3(self, t):
+        """expression : NAME LPAREN RPAREN"""
+        t[0] = ast.FuncCall(func_name=t[1], args=None)
+
     def p_args_list(self, t):
         """args_list : expression
                     | expression COMMA

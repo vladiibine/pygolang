@@ -33,3 +33,21 @@ def test_assignment_from_variable():
 
     assert 'y' in state
     assert state['y'] == 1
+
+
+def test_interpreter_prints_out_things():
+    io = FakeIO([
+        "x=1",
+        "x",
+        "2",
+        "func a(n int)int{return 3}",
+        "a(0)",
+    ])
+
+    state = {}
+
+    main(io, state)
+
+    assert io.stdout
+    assert len(io.stdout) == 3
+    assert io.stdout == [1, 2, 3]
