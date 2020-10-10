@@ -48,7 +48,7 @@ class PyGoParser:
 
     def p_expression_3(self, t):
         """expression : NAME LPAREN RPAREN"""
-        t[0] = ast.FuncCall(func_name=t[1], args=None)
+        t[0] = ast.FuncCall(func_name=t[1], args=ast.FuncArguments([]))
 
     def p_args_list(self, t):
         """args_list : expression
@@ -82,9 +82,10 @@ class PyGoParser:
             body=t.slice[8].value)
 
     def p_func_params(self, t):
-        """func_params : NAME NAME
+        """func_params :
+                        | NAME NAME
                         | NAME COMMA func_params
-                        | func_params func_params
+                        | func_params COMMA func_params
         """
         t.slice[0].value = ast.FuncParams(t.slice[1:])
 

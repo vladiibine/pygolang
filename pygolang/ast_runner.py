@@ -185,7 +185,7 @@ class Runner:
         params = zip(param_names, param_types)
 
         # 1.2. then put in scope the params with the values from the args
-        for (pname, ptype), arg_abstrat_value in zip(params, func_call.args.arg_list):
+        for (pname, ptype), arg_abstrat_value in zip(params, func_call.args.arg_list if func_call.args else []):
             arg_value = self.run_expression(arg_abstrat_value, scopes)
 
             # TODO -> we don't check for types here, and we shouldn't

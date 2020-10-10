@@ -50,3 +50,16 @@ def test_calling_function_that_returns_an_argument():
 
     assert 'x' in state
     assert state['x'] == 3
+
+
+def test_calling_function_without_params():
+    io = FakeIO([
+        "func x()name{return 2}",
+        "x()"
+    ])
+    state = {}
+
+    main(io, state)
+
+    assert io.stdout == [2]
+
