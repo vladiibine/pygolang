@@ -24,24 +24,56 @@ class Runner:
         scopes = scopes or [self.state]
 
         if isinstance(code, ast.Root):
-            if isinstance(code.value, ast.InterpreterStart):
-                value = self.run_statement(code.value.value, scopes)
-                if value is not None:
-                    self.io.to_stdout(value)
+            value = self.run(code.value, scopes)
+
+        elif isinstance(code, ast.InterpreterStart):
+            value = self.run(code.value, scopes)
+            if value is not None:
+                self.io.to_stdout(value)
+
         elif isinstance(code, ast.FuncBody):
             for stmt in code.statements:
                 value = self.run(stmt, scopes)
                 if isinstance(stmt, ast.Return):
                     break
 
+        elif isinstance(code, ast.Assignment):
+            key = code.name
+            assigned_value = self.run(code.value, scopes)
+
+            # Global scope, until we implement per-something-else scope
+            self.set_in_scopes(key, assigned_value, scopes)
+
+        elif isinstance(code, ast.Func):
+            self.set_in_scopes(code.name, code, scopes)
+
+        # return result
+
+        elif isinstance(code, ast.Name):
+            # TODO - replace global state with scopes
+            # return self.state[exp.value]
+            return self.find_in_scopes(code.value, scopes)
+
         elif isinstance(code, ast.Operator):
             value = self.run_operator(code, scopes)
 
-        elif isinstance(code, ast.Expression):
-            value = self.run_expression(code, scopes)
-
         elif isinstance(code, ast.Leaf):
             value = code.value
+
+        elif isinstance(code, ast.Expression):
+            # we only know how to treat the NAME expression here
+            if len(code.children) == 1:
+                if isinstance(code.children[0], ast.Name):
+                    # return self.state[code.children[0].value]
+                    return self.find_in_scopes(code.children[0].value, scopes)
+
+                elif isinstance(code.children[0], ast.Leaf):
+                    return code.children[0].value
+
+                elif isinstance(code.children[1], ast.FuncCall):
+                    return self.call_func(code.children[1], scopes)
+
+                return self.run(code.children[0], scopes)
 
         elif isinstance(code, ast.Return):
             value = self.run(code.value, scopes)
@@ -49,73 +81,13 @@ class Runner:
         elif isinstance(code, ast.FuncCall):
             value = self.call_func(code, scopes)
 
+        elif isinstance(code, ast.Statement):
+            value = self.run(code.value, scopes)
+
         return value
 
     def set_in_scopes(self, name, value, scopes):
         scopes[0][name] = value
-
-    def run_statement(self, stmt, scopes):
-        result = None
-
-        if isinstance(stmt, ast.Assignment):
-            key = stmt.name
-            value = self.run(stmt.value)
-
-            # Global scope, until we implement per-something-else scope
-            self.set_in_scopes(key, value, scopes)
-
-        elif isinstance(stmt, ast.Func):
-            self.set_in_scopes(stmt.name, stmt, scopes)
-
-        elif isinstance(stmt, ast.Expression):
-            result = self.run_expression(stmt, scopes)
-
-        elif isinstance(stmt, ast.FuncCall):
-            result = self.call_func(stmt, scopes)
-
-        elif isinstance(stmt, ast.Statement):
-            result = self.run_statement(stmt.value, scopes)
-
-        elif isinstance(stmt, ast.Operator):
-            result = self.run_operator(stmt, scopes)
-
-        elif isinstance(stmt, ast.Leaf):
-            result = stmt.value
-
-        return result
-
-    def run_expression(self, exp, scopes):
-        """
-        :param list[dict] scopes:
-        :return:
-        """
-        if isinstance(exp, ast.Leaf):
-            return exp.value
-
-        elif isinstance(exp, ast.Name):
-            # TODO - replace global state with scopes
-            # return self.state[exp.value]
-            return self.find_in_scopes(exp.value, scopes)
-
-        elif isinstance(exp, ast.Operator):
-            return self.run_operator(exp, scopes)
-
-        elif isinstance(exp, ast.Expression):
-            # we only know how to treat the NAME expression here
-            if len(exp.children) == 1:
-                if isinstance(exp.children[0], ast.Name):
-                    # return self.state[exp.children[0].value]
-                    return self.find_in_scopes(exp.children[0].value, scopes)
-
-                elif isinstance(exp.children[0], ast.Leaf):
-                    return exp.children[0].value
-
-                elif isinstance(exp.children[1], ast.FuncCall):
-                    return self.call_func(exp.children[1], scopes)
-
-                return self.run_expression(exp.children[0], scopes)
-        elif isinstance(exp, ast.FuncCall):
-            return self.call_func(exp, scopes)
 
     def find_in_scopes(self, name, scopes):
         """
@@ -130,7 +102,6 @@ class Runner:
         # well... should raise an error if the name is not in any scope
         #  BUT it's really the job of the parser to prevent this situation
 
-
     def run_operator(self, operator_expr, scopes):
         """
         :param ast.Operator operator_expr:
@@ -141,8 +112,8 @@ class Runner:
         if len(operator_expr.args_list) == 2:
             operand1_exp, operand2_exp = operator_expr.args_list
 
-            operand1 = self.run_expression(operand1_exp, scopes)
-            operand2 = self.run_expression(operand2_exp, scopes)
+            operand1 = self.run(operand1_exp, scopes)
+            operand2 = self.run(operand2_exp, scopes)
 
             return OPERATOR_MAP[operator_expr.operator](operand1, operand2)
 
@@ -188,7 +159,7 @@ class Runner:
 
         # 1.2. then put in scope the params with the values from the args
         for (pname, ptype), arg_abstrat_value in zip(params, func_call.args.arg_list if func_call.args else []):
-            arg_value = self.run_expression(arg_abstrat_value, scopes)
+            arg_value = self.run(arg_abstrat_value, scopes)
 
             # TODO -> we don't check for types here, and we shouldn't
             #   What we should do is check types at parse time
@@ -197,5 +168,8 @@ class Runner:
 
         # 3. run the function
         result = self.run(func.body, scopes=scopes)
+
+        # Don't forget to destroy the created scope!
+        scopes.pop(0)
 
         return result

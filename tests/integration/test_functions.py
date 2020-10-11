@@ -46,6 +46,14 @@ def test_calling_function_that_returns_an_argument():
     ])
     state = {}
 
+    try:
+        import pydevd; pydevd.settrace('localhost', port=5678)
+    except ImportError:
+        print("\n\n\n")
+        print(">>>VWH>>>: the pydevd module is not installed")
+        print("\n\n\n\n\n")
+
+
     main(io, state)
 
     assert 'x' in state
@@ -63,3 +71,13 @@ def test_calling_function_without_params():
 
     assert io.stdout == [2]
 
+
+def test_calling_slightly_more_complex_function():
+    io = FakeIO([
+        "func add(x int, y int) int {return x + y }",
+        "add(1,2)"
+    ])
+
+    main(io)
+
+    assert io.stdout == [3]

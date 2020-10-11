@@ -52,14 +52,14 @@ class PyGoParser:
 
     def p_args_list(self, t):
         """args_list : expression
-                    | expression COMMA
-                    | args_list COMMA expression
+                    | args_list COMMA
+                    | args_list COMMA args_list
         """
         t.slice[0].value = ast.FuncArguments(
             # t.slice[1:]
             # How do I know if these are literals, names or expressions?
             # ...cuz the definition says they're all expressions I guess
-            [ast.Expression([elem.value]) for elem in t.slice[1:]]
+            [ast.Expression([elem.value]) for elem in t.slice[1:] if elem.type != 'COMMA']
         )
 
     def p_assignment_statement(self, t):
@@ -98,7 +98,7 @@ class PyGoParser:
                     | assignment_statement
                     | expression_statement
         """
-        t[0] = ast.Statement(t[1])
+        t.slice[0].value = ast.Statement(t.slice[1].value)
 
     def p_func_body(self, t):
         """func_body : assignment_statement
