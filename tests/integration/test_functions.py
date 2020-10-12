@@ -64,20 +64,24 @@ def test_calling_function_without_params():
     assert io.stdout == [2]
 
 
-def test_calling_slightly_more_complex_function():
+def test_calling_function_that_sums_its_arguments():
     io = FakeIO([
         "func add(x int, y int) int {return x + y }",
         "add(1,2)"
     ])
 
-    try:
-        import pydevd; pydevd.settrace('localhost', port=5678)
-    except ImportError:
-        print("\n\n\n")
-        print(">>>VWH>>>: the pydevd module is not installed")
-        print("\n\n\n\n\n")
-
-
     main(io)
 
     assert io.stdout == [3]
+
+
+def test_function_that_uses_global_scope_and_arguments_to_produce_result_qm7():
+    io = FakeIO([
+        "func add(x int, y int) int {return x + y + z}",
+        "z = 4",
+        "add(1, 2)",
+    ])
+
+    main(io)
+
+    assert io.stdout == [7]
