@@ -17,6 +17,49 @@ class Func:
         self.return_type = return_type
         self.body = body
 
+    def get_params_and_types(self):
+        # 1. match args to params
+        # 2. put them in the scope
+        # 3. run the code from its body as the list of instructions it contains
+        # 4. return the result
+        # 1.1. match args to params - first find out what the params are
+        # param_types = [(n, t) for n, t in (func.params.token)]
+        # Examples of signatures:
+        # x int, y int, z int
+        # x, y, z int, a, b, c int
+        # if there's no previous token, we push a name
+        # if name comes after name, we push a type
+        # if name comes after comma, we push a name
+        # TODO - move this logic in the ast.Function, during obj. construction
+        # flatmap function params
+        flat_param_definitions = []
+        for nested_param in self.params.token:
+            if nested_param.type == 'func_params':
+                for single_param in nested_param.value.token:
+                    flat_param_definitions.append(single_param)
+            else:
+                # it's a comma, not a nested param
+                flat_param_definitions.append(nested_param)
+
+        param_names = []
+        param_types = []
+        prev_token = None
+        for token in flat_param_definitions:  # type: ply.lexer.LexToken
+            if prev_token is None:
+                param_names.append(token.value)
+                prev_token = token
+            elif token.type == 'NAME' and prev_token.type == 'NAME':
+                param_types.extend(
+                    [token.value] * (len(param_names) - len(param_types)))
+                prev_token = token
+            elif token.type == 'NAME' and prev_token.type == 'COMMA':
+                param_names.append(token.value)
+                prev_token = token
+            else:
+                prev_token = token  # handling commas
+        params = list(zip(param_names, param_types))
+        return params
+
 
 class FuncParams:
     def __init__(self, token):

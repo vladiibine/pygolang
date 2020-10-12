@@ -107,7 +107,7 @@ def main(io=IO(), program_state=None):
                     "Unknown error occurred. Traceback for debugging:"
                 )
                 io.to_stderr(tb.format_exc())
-                io.to_stdout(err)
+                io.to_stderr(err)
 
 
 if __name__ == '__main__':
