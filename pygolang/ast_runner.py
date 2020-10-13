@@ -112,9 +112,9 @@ class Runner:
         """
         for scope in scopes:
             # Function scopes should be skipped when looking for variables
-            # ..this might get more complicated when creating 
-            if isinstance(scope, ast.FuncScope):
-                continue
+            # ..this might get more complicated when creating
+            # if isinstance(scope, ast.FuncScope):
+            #     continue
             if name in scope:
                 return scope[name]
 
@@ -153,8 +153,11 @@ class Runner:
         flat_arguments = []
         for func_args in func_call.args.arg_list if func_call.args else []:
             for child in func_args.children:
-                for child_expr in child.arg_list:
-                    flat_arguments.append(child_expr)
+                if isinstance(child, ast.FuncArguments):
+                    for child_expr in child.arg_list:
+                        flat_arguments.append(child_expr)
+                else:
+                    flat_arguments.append(child)
 
         # set in the new function scope the arguments as variables
         for (pname, ptype), arg_abstrat_value in zip(params, flat_arguments):

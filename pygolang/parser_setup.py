@@ -63,8 +63,8 @@ class PyGoParser:
         )
 
     def p_declaration_statement(self, t):
-        """declaration_statement : VAR NAME TYPE EQUALS expression
-                                | VAR NAME TYPE
+        """declaration_statement : VAR NAME type_declaration EQUALS expression
+                                | VAR NAME type_declaration
                                 | NAME WALRUS expression
         """
         if len(t.slice) == 6:
@@ -72,6 +72,10 @@ class PyGoParser:
 
         elif len(t.slice) == 4:
             pass
+
+    def p_type_declaration(self, t):
+        """type_declaration : TYPE"""
+        pass
 
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
