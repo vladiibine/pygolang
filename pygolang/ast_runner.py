@@ -13,11 +13,22 @@ OPERATOR_MAP = {
 
 class Runner:
     def __init__(self, io, state):
+        """
+
+        :param io:
+        :param dict|ast.ModuleScope state: the program's starting state
+        """
         self.io = io
         # TODO -> access to this needs to be replaced with a call to a
         #  method which searches for variables in a list of scopes
         #  AND if it writes something, it writes in the first scope it gets
-        self.state = state
+        if isinstance(state, dict):
+            self.state = ast.ModuleScope(state)
+        elif isinstance(state, ast.ModuleScope):
+            self.state = state
+        else:
+            raise Exception(
+                "The program's state should be a module scope or a dict")
 
     def run(self, code, scopes=None):
         value = None
@@ -38,6 +49,10 @@ class Runner:
                     break
 
         elif isinstance(code, ast.Assignment):
+            # 1. see if the variable is declared in the current scope
+            # 2. if so, set it
+            # 3. TODO ERROR: var was not declared: the parser should have
+            #       raised an error, because that's not allowed
             key = code.name
             assigned_value = self.run(code.value, scopes)
 
@@ -96,6 +111,10 @@ class Runner:
         :return:
         """
         for scope in scopes:
+            # Function scopes should be skipped when looking for variables
+            # ..this might get more complicated when creating 
+            if isinstance(scope, ast.FuncScope):
+                continue
             if name in scope:
                 return scope[name]
 
@@ -124,7 +143,7 @@ class Runner:
         # 4. run the function's body using the new and previous scopes
         # 5. profit!
         scopes = scopes or []
-        scopes.insert(0, {})
+        scopes.insert(0, ast.FuncScope({}))
 
         func = self.find_in_scopes(func_call.func_name, scopes)  # type: ast.Func
 

@@ -62,6 +62,17 @@ class PyGoParser:
             [ast.Expression([elem.value]) for elem in t.slice[1:] if elem.type != 'COMMA']
         )
 
+    def p_declaration_statement(self, t):
+        """declaration_statement : VAR NAME TYPE EQUALS expression
+                                | VAR NAME TYPE
+                                | NAME WALRUS expression
+        """
+        if len(t.slice) == 6:
+            pass
+
+        elif len(t.slice) == 4:
+            pass
+
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
         t[0] = ast.Assignment(t[1], t[3])
@@ -96,6 +107,7 @@ class PyGoParser:
     def p_statement(self, t):
         """statement : func_statement
                     | assignment_statement
+                    | declaration_statement
                     | expression_statement
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)

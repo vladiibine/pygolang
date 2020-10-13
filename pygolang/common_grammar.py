@@ -1,15 +1,17 @@
 keywords = (
     'FUNC',
     'RETURN',
+    'VAR',
 )
 
 operators = (
-    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS',
+    'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'EQUALS', 'WALRUS',
 )
 
 tokens = keywords + \
          operators + \
          (
+             'TYPE',
              'NAME',
              'NUMBER',
              'LPAREN', 'RPAREN',  # ( )

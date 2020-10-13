@@ -140,3 +140,13 @@ class Root:
 class Return:
     def __init__(self, value):
         self.value = value
+
+
+class FuncScope:
+    def __init__(self, scope_dict):
+        self.scope_dict = scope_dict
+
+
+class ModuleScope:
+    def __init__(self, scope_dict):
+        self.scope_dict = scope_dict
