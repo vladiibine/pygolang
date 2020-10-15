@@ -1,3 +1,23 @@
+class TypedValue:
+    def __init__(self, value, type):
+        """
+        :param object value:
+        :param Type type:
+        """
+        self.value = value
+        self.type = type
+
+
+class ReprHelper:
+    def __init__(self, repr_string):
+        self.repr_string = repr_string
+
+    def __str__(self):
+        return self.repr_string
+
+    __repr__ = __str__
+
+
 class FuncCall:
     def __init__(self, func_name, args):
         self.func_name = func_name
@@ -10,12 +30,13 @@ class FuncCall:
         """
 
 
-class Func:
+class Func(TypedValue):
     def __init__(self, name, params, return_type, body):
         self.name = name
         self.params = params
         self.return_type = return_type
         self.body = body
+        super(Func, self).__init__(self, FuncType)
 
     def get_params_and_types(self):
         # 1. match args to params
@@ -87,12 +108,36 @@ class Name:
 
 
 class Expression:
-    def __init__(self, children):
+    def __init__(self, children, type_scope):
         """
 
+        :param TypeScope type_scope:
         :param list[Node] children:
         """
         self.children = children
+        self.type_scope_stack = type_scope
+        self.type = self.determine_type()
+
+    def determine_type(self):
+        """
+        :return:
+        """
+        # TODO -> figure out how we build these parse-time scopes
+        #  because they're not the same as the run-time ones.
+        #  At run-time, a function can get called multiple times, and scopes
+        #  will be created and destroyed BUT, the parse-time scopes will be
+        #  static. The names/types in them will not change.
+
+        """
+        SO, determining the type of an expression can't be done in just 1 step
+        because golang has funny-scopes. Names of functions are evaluated
+        lazily, but names of variables are evaluated eagerly.
+        This allows definitions of functions to appear after they're called
+        but doesn't allow usage of variables before they're declared, not even
+        from anonymous functions.
+            
+        """
+        pass
 
 
 class Leaf:
@@ -105,9 +150,10 @@ class Leaf:
     value = None  # Leafs have values
 
 
-class Number(Leaf):
+class Number(TypedValue, Leaf):
     def __init__(self, value):
         self.value = value
+        super(Number, self).__init__(value, NumberType)
 
 
 class Operator:
@@ -117,9 +163,34 @@ class Operator:
 
 
 class Assignment:
-    def __init__(self, name, value):
+    def __init__(self, name, value, type_scope):
+        """
+
+        :param str name:
+        :param TypedValue value:
+        :param TypeScope type_scope:
+        """
         self.name = name
         self.value = value
+        self.type_scope = type_scope
+
+        self.validate_types()
+
+        # raise NotImplementedError(
+        #     "TODO implement a type check OR mark as solvable later"
+        # )
+
+    def validate_types(self):
+        target_type = self.type_scope.get_variable_type(self.name)
+        type_to_assign = self.value.type
+
+        if not target_type.is_assignable_from(type_to_assign):
+            raise Exception(
+                f"Can't assign type ({type_to_assign}) to variable "
+                f"({self.name}) of type ({target_type})"
+            )
+        # if self.value.type.is_assignable_from()
+        # pass
 
 
 class Statement:
@@ -142,7 +213,7 @@ class Return:
         self.value = value
 
 
-class AbstractScope:
+class AbstractRuntimeScope:
     def __init__(self, scope_dict):
         self.scope_dict = scope_dict
 
@@ -159,9 +230,170 @@ class AbstractScope:
         return item in self.scope_dict
 
 
-class FuncScope(AbstractScope):
+class FuncRuntimeScope(AbstractRuntimeScope):
     pass
 
 
-class ModuleScope(AbstractScope):
+class ModuleRuntimeScope(AbstractRuntimeScope):
     pass
+
+
+
+
+class BoolLiteral(TypedValue):
+    def __init__(self, value):
+        super(BoolLiteral, self).__init__(
+            value=BoolValue(value), type=BoolType
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, BoolLiteral):
+            return self.value == other.value
+
+
+class BoolLiteralFalse(BoolLiteral):
+    def __init__(self, ):
+        super(BoolLiteralFalse, self).__init__(False)
+
+
+class BoolLiteralTrue(BoolLiteral):
+    def __init__(self):
+        super(BoolLiteralTrue, self).__init__(True)
+
+
+class ValueWrapper:
+    """Used for when values are printed differently in py/go
+
+    For instance: True vs true
+    """
+    def __init__(self, value):
+        self.value = value
+
+
+class BoolValue(ValueWrapper):
+    def __init__(self, value):
+        super(BoolValue, self).__init__(value)
+
+    def __eq__(self, other):
+        if isinstance(other, BoolValue):
+            return self.value == other.value
+
+    def __str__(self):
+        return str(self.value).lower()
+
+    __repr__ = __str__
+
+
+class Type:
+    def __init__(self, repr):
+        self.repr = repr
+
+    def __str__(self):
+        return f"{self.repr}"
+
+    def is_assignable_from(self, other):
+        if [self, other] in ASSIGNABLE_TYPES:
+            return True
+
+    def __eq__(self, other):
+        return self.repr == other.repr
+
+
+BoolType = Type("BoolType")
+FuncType = Type("FuncType")
+NumberType = Type("NumberType")
+
+ASSIGNABLE_TYPES = [
+    [BoolType, BoolType],
+]
+
+
+# Singleton to mark that a variable was only declared, but not initialized
+ValueNotSet = ReprHelper('NotSet')
+
+
+class Declaration:
+    def __init__(self, name, type, type_scope, value=ValueNotSet):
+        """
+        :param name:
+        :param type:
+        :param value:
+        :param TypeScope type_scope:
+        """
+        self.name = name
+        self.type = type
+        self.value = value
+        self.type_scope = type_scope
+
+        self.type_scope.declare_variable_type(name, type)
+
+
+
+
+class TypeScope:
+    """Keeps track of variable types within a lexical scope"""
+
+    def __init__(self, parent):
+        """
+        :param TypeScope|None parent: ...or None for the root scope
+        """
+        self.parent = parent
+
+        # {<name> : <type>}
+        self.scope = {}
+
+    def declare_variable_type(self, name, type):
+        self.scope[name] = type
+
+    def get_variable_type(self, name):
+        tscope = self
+
+        # beware of cycles!
+        while tscope:
+            if name in tscope.scope:
+                return tscope.scope[name]
+            tscope = tscope.parent
+
+
+class TypeScopeStack:
+    """Used at parse-time, to determine operations have compatible types
+
+    For instance
+    x = 123 // is this allowed? is x declared as some number type?
+
+    ...or
+    asdf() == zxcv() ...is this allowed? Are the 2 returned types comparable?
+
+    How would we go about solving this problem?
+    1. Each time a program starts, a TypeScope is created
+    2. Each time a new function is created, a new TypeScope is created
+    2.1. Impl detail -> we can create scopes when the "func" keyword is parsed
+        for functions or when the "{" symbol is parsed, for blocks
+    2.2. We can close scopes when the function/block is created in the
+        p_* methods
+    3. Each time a new block is created (excluding function bodies), a nea TS
+        is created
+    4. All TSs have exactly 1 parent, leading all the way up to the program's
+        TS
+    5. All type declarations will mark their types in the corresponding TS
+    6. Function calls -> functions can be defined after a TS is created,
+        and type checking for them can be left until after all parsing has
+        completed
+    7. Lookups: Assignments -> where do they get a scope, to search/define
+        stuff in? ...well, there's always 1 scope on the stack to set things
+        in. And it has parents, so there's always going to be a scope to search
+        stuff in.
+
+    """
+    def __init__(self):
+        self.scopes = [TypeScope(parent=None)]
+
+    def create_scope(self):
+        previous_scope = self.scopes[-1]
+        self.scopes.append(TypeScope(parent=previous_scope))
+
+    def pop_scope(self):
+        self.scopes.pop()
+
+    def get_current_scope(self):
+        return self.scopes[-1]

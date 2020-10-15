@@ -1,4 +1,5 @@
-from pygolang.interpreter import IO, StopPyGoLangInterpreterError
+from pygolang.io_callback import IO
+from pygolang.errors import StopPyGoLangInterpreterError
 
 
 class FakeIO(IO):

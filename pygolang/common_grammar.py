@@ -2,6 +2,9 @@ keywords = (
     'FUNC',
     'RETURN',
     'VAR',
+    'TRUE',
+    'FALSE',
+    'BOOL',
 )
 
 operators = (
