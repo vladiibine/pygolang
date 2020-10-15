@@ -179,6 +179,9 @@ class Int(TypedValue, Leaf, OperatorDelegatorMixin):
     def __repr__(self):
         return f"ast.Int({self.value})"
 
+    def to_pygo_repr(self):
+        return f"{self.value}"
+
 
 class Operator:
     def __init__(self, operator, args_list):
@@ -274,6 +277,9 @@ class BoolLiteral(TypedValue):
         if isinstance(other, BoolLiteral):
             return self.value == other.value
 
+    def to_pygo_repr(self):
+        return self.value.to_pygo_repr()
+
 
 class BoolLiteralFalse(BoolLiteral):
     def __init__(self, ):
@@ -285,18 +291,9 @@ class BoolLiteralTrue(BoolLiteral):
         super(BoolLiteralTrue, self).__init__(True)
 
 
-class ValueWrapper:
-    """Used for when values are printed differently in py/go
-
-    For instance: True vs true
-    """
+class BoolValue:
     def __init__(self, value):
         self.value = value
-
-
-class BoolValue(ValueWrapper):
-    def __init__(self, value):
-        super(BoolValue, self).__init__(value)
 
     def __eq__(self, other):
         if isinstance(other, BoolValue):
@@ -306,6 +303,9 @@ class BoolValue(ValueWrapper):
         return str(self.value).lower()
 
     __repr__ = __str__
+
+    def to_pygo_repr(self):
+        return f"{str(self.value).lower()}"
 
 
 class Type:

@@ -9,7 +9,8 @@ def test_parse_bool_literal():
 
     main(io)
 
-    assert io.stdout == [ast.BoolValue(True), ast.BoolValue(False)], io.stderr
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['true', 'false']
 
 
 def test_parse_bool_explicit():
@@ -21,4 +22,4 @@ def test_parse_bool_explicit():
     assert not io.stderr
     assert not io.stdout
     assert 'x' in scope
-    assert scope == {'x': ast.BoolLiteralTrue()}
+    assert scope['x'][0] == ast.BoolLiteralTrue()

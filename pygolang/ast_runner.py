@@ -40,7 +40,7 @@ class Runner:
         elif isinstance(code, ast.InterpreterStart):
             value = self.run(code.value, scopes)
             if value is not None:
-                self.io.to_stdout(value)
+                self.io.to_stdout(value.to_pygo_repr())
 
         # TODO -> kill this check. ast.Leaf behaves the same, but
         #  we must make sure ast.BoolLiteral is a leaf (which now it's not)

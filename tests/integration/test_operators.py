@@ -11,5 +11,5 @@ def test_plus():
     main(io, state)
 
     assert io.stdout
-    assert io.stdout == [2]
+    assert io.stdout == ['2']
     assert not io.stderr

@@ -15,7 +15,7 @@ def test_prints_expressions_to_stdout():
 
     assert io.stdout
     assert len(io.stdout) == 2
-    assert io.stdout == [ast.Int(133), ast.Int(15)]
+    assert io.stdout == ['133', '15']
 
 
 def test_assignment_from_variable():
@@ -30,7 +30,7 @@ def test_assignment_from_variable():
 
     assert io.stdout
     assert len(io.stdout) == 1
-    assert io.stdout == [ast.Int(1)]
+    assert io.stdout == ['1']
 
     assert 'y' in state
     assert state['y'][0] == ast.Int(1)
@@ -54,7 +54,7 @@ def test_interpreter_prints_out_things():
     assert not io.stderr, '\n'.join(str(e) for e in io.stderr)
     assert io.stdout
     assert len(io.stdout) == 3
-    assert io.stdout == [ast.Int(1), ast.Int(2), ast.Int(3)]
+    assert io.stdout == ['1', '2', '3']
 
 
 def test_operators_and_expressions():
@@ -68,5 +68,5 @@ def test_operators_and_expressions():
     main(io, state)
 
     assert not io.stderr, io.format_stderr_for_debugging()
-    assert io.stdout == [4]
+    assert io.stdout == ['4']
 
