@@ -20,8 +20,8 @@ def test_prints_expressions_to_stdout():
 
 def test_assignment_from_variable():
     io = FakeIO([
-        """x=1""",
-        """y=x""",
+        """var x int = 1""",
+        """var y int = x""",
         """y"""
     ])
     state = {}
@@ -30,10 +30,11 @@ def test_assignment_from_variable():
 
     assert io.stdout
     assert len(io.stdout) == 1
-    assert io.stdout == [1]
+    assert io.stdout == [ast.Int(1)]
 
     assert 'y' in state
-    assert state['y'] == 1
+    assert state['y'][0] == ast.Int(1)
+    assert state['y'][1] == ast.IntType
 
 
 def test_interpreter_prints_out_things():

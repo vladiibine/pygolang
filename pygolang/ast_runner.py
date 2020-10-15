@@ -64,7 +64,8 @@ class Runner:
             #  done before run-time
             self.declare_in_scopes(key, type_, scopes)
             if code.value is not ast.ValueNotSet:
-                self.set_in_scopes(key, code.value, scopes)
+                assigned_value = self.run(code.value)
+                self.set_in_scopes(key, assigned_value, scopes)
 
         elif isinstance(code, ast.Assignment):
             # 1. see if the variable is declared in the current scope
@@ -138,9 +139,14 @@ class Runner:
         if name in scopes[0]:
             _, type_ = scopes[0][name]
 
+            # TODO -> should not do these kinds of checks at run-time
+            #   assignments and declarations have already been checked
+            #   at parse-time....Well, maybe if we have dynamic types, created
+            #   at run-time, this is justified, but this has not been the case
+            #   so far
             if self.are_types_compatible(
                     declared_type=type_, assigned_value=value):
-                scopes[0][name] = value
+                scopes[0][name][0] = value
             else:
                 # Print something like this:
                 # ./file.go:6:6: cannot use true (type bool) as type int in assignment
@@ -176,7 +182,7 @@ class Runner:
             # if isinstance(scope, ast.FuncScope):
             #     continue
             if name in scope:
-                return scope[name]
+                return scope[name][0]
 
         # well... should raise an error if the name is not in any scope
         #  BUT it's really the job of the parser to prevent this situation

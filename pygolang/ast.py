@@ -299,6 +299,8 @@ class Type:
     def __str__(self):
         return f"{self.repr}"
 
+    __repr__ = __str__
+
     def is_assignable_from(self, other):
         if self == other:
             return True
@@ -314,7 +316,7 @@ class Type:
 
 BoolType = Type("BoolType")
 FuncType = Type("FuncType")
-IntType = Type("NumberType")
+IntType = Type("IntType")
 StringType = Type("StringType")
 
 ASSIGNABLE_TYPES = [
