@@ -44,11 +44,19 @@ class PyGoParser:
 
     def p_expression_2(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
-        t[0] = ast.FuncCall(func_name=t[1], args=t[3])
+        current_scope = self.type_scope_stack.get_current_scope()
+        func_return_type = current_scope.get_variable_type(t[1])
+
+        t[0] = ast.FuncCall(func_name=t[1], args=t[3], type=func_return_type)
 
     def p_expression_3(self, t):
         """expression : NAME LPAREN RPAREN"""
-        t[0] = ast.FuncCall(func_name=t[1], args=ast.FuncArguments([]))
+        current_scope = self.type_scope_stack.get_current_scope()
+        func_return_type = current_scope.get_variable_type(t[1])
+
+        t[0] = ast.FuncCall(
+            func_name=t[1], args=ast.FuncArguments([]), type=func_return_type
+        )
 
     def p_expression_4(self, t):
         """expression : TRUE
@@ -98,6 +106,13 @@ class PyGoParser:
                 type=t[3],
                 type_scope=self.type_scope_stack.get_current_scope()
             )
+        elif len(t.slice) == 4 and t.slice[2].type == common_grammar.OPERATORS.WALRUS.value:
+            t[0] = ast.Declaration(
+                name=t[1],
+                type=t[3].type,
+                value=t[3],
+                type_scope=self.type_scope_stack.get_current_scope(),
+            )
 
     def p_type_declaration(self, t):
         """type_declaration : BOOL
@@ -121,18 +136,38 @@ class PyGoParser:
         t[0] = ast.Statement(t.slice[1].value)
         # t.slice[0].value = t.slice[1].value
 
-    def p_func_statement(self, t):
-        """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type new_scope_start func_body new_scope_end """
-        t[0] = ast.FuncCreation(
-            name=t.slice[2].value,
-            params=t.slice[4].value,
-            return_type=t.slice[6].value,
-            body=t.slice[8].value)
+    # def p_func_statement(self, t):
+    #     """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type new_scope_start func_body new_scope_end """
+    #     t[0] = ast.FuncCreation(
+    #         name=t.slice[2].value,
+    #         params=t.slice[4].value,
+    #         return_type=t.slice[6].value,
+    #         body=t.slice[8].value)
         # self.program_state[t[2]] = ast.FuncCreation(
         #     name=t.slice[2].value,
         #     params=t.slice[4].value,
         #     return_type=t.slice[6].value,
         #     body=t.slice[8].value)
+
+    def p_func_statement(self, t):
+        """func_statement : FUNC func_signature new_scope_start func_body new_scope_end"""
+        t[0] = ast.FuncCreation(
+            name=t[2][0],
+            params=t[2][1],
+            return_type=t[2][2],
+            body=t[4]
+        )
+
+    def p_func_signature(self, t):
+        """func_signature : NAME LPAREN func_params RPAREN func_return_type"""
+        # Pass the values to the p_func_statement handler
+        t[0] = [t[1], t[3], t[5]]  # name, params, rtype
+
+        # and declare the function's type in the parent scope, likey global
+        scope = self.type_scope_stack.get_current_scope()
+        func_type = ast.FuncCreation.get_func_type(t[3], t[5])
+
+        scope.declare_variable_type(name=t[1], type=func_type)
 
     def p_new_scope_start(self, t):
         """new_scope_start : LBRACE"""
