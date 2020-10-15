@@ -70,7 +70,7 @@ class FuncCreation(TypedValue):
             if prev_token is None:
                 param_names.append(token.value)
                 prev_token = token
-            elif token.type == 'NAME' and prev_token.type == 'NAME':
+            elif token.type == 'type_declaration' and prev_token.type == 'NAME':
                 param_types.extend(
                     [token.value] * (len(param_names) - len(param_types)))
                 prev_token = token
@@ -151,7 +151,23 @@ class Leaf:
     value = None  # Leafs have values
 
 
-class Int(TypedValue, Leaf):
+class OperatorDelegatorMixin:
+    """Used for performing operations using its .value attribute
+    """
+    def __add__(self, other):
+        return self.__class__(self.value + other.value)
+
+    def __sub__(self, other):
+        return self.__class__(self.value - other.value)
+
+    def __mul__(self, other):
+        return self.__class__(self.value * other.value)
+
+    def __divmod__(self, other):
+        return self.__class__(self.value.__divmod__(other.value))
+
+
+class Int(TypedValue, Leaf, OperatorDelegatorMixin):
     def __init__(self, value):
         self.value = value
         super(Int, self).__init__(value, IntType)

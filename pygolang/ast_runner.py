@@ -92,7 +92,7 @@ class Runner:
         elif isinstance(code, ast.Name):
             # TODO - replace global state with scopes
             # return self.state[exp.value]
-            return self.find_in_scopes(code.value, scopes)
+            value = self.find_in_scopes(code.value, scopes)
 
         elif isinstance(code, ast.Operator):
             value = self.run_operator(code, scopes)
@@ -103,17 +103,20 @@ class Runner:
         elif isinstance(code, ast.Expression):
             # we only know how to treat the NAME expression here
             if len(code.children) == 1:
-                if isinstance(code.children[0], ast.Name):
-                    # return self.state[code.children[0].value]
-                    return self.find_in_scopes(code.children[0].value, scopes)
-
-                elif isinstance(code.children[0], ast.Leaf):
-                    return code.children[0].value
-
-                elif isinstance(code.children[0], ast.FuncCall):
-                    return self.call_func(code.children[0], scopes)
-
-                return self.run(code.children[0], scopes)
+                value = self.run(code.children[0], scopes)
+            else:
+                raise Exception("Didn't expect this too much")
+                # if isinstance(code.children[0], ast.Name):
+                #     # return self.state[code.children[0].value]
+                #     return self.find_in_scopes(code.children[0].value, scopes)
+                #
+                # elif isinstance(code.children[0], ast.Leaf):
+                #     return code.children[0]
+                #
+                # elif isinstance(code.children[0], ast.FuncCall):
+                #     return self.call_func(code.children[0], scopes)
+                #
+                # return self.run(code.children[0], scopes)
 
         elif isinstance(code, ast.Return):
             value = self.run(code.value, scopes)
@@ -201,7 +204,7 @@ class Runner:
             operand1 = self.run(operand1_exp, scopes)
             operand2 = self.run(operand2_exp, scopes)
 
-            return OPERATOR_MAP[operator_expr.operator](operand1.value, operand2.value)
+            return OPERATOR_MAP[operator_expr.operator](operand1, operand2)
 
     def call_func(self, func_call, scopes):
         # 1. find the function's parameters
@@ -232,7 +235,7 @@ class Runner:
 
             # TODO -> we don't check for types here, and we shouldn't
             #   What we should do is check types at parse time
-            scopes[0][pname] = arg_value
+            scopes[0][pname] = [arg_value, 'type-not-set-and-we-dont-need-to-set-it-yet']
 
         result = self.run(func.body, scopes=scopes)
 

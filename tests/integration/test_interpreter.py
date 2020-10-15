@@ -5,7 +5,7 @@ from tests.integration.io_callback_fixture import FakeIO
 
 def test_prints_expressions_to_stdout():
     io = FakeIO([
-        """func asdf( name1 int)name2{return 133}""",
+        """func asdf( name1 int)int{return 133}""",
         """asdf(3)""",
         """15""",
     ])
@@ -15,7 +15,7 @@ def test_prints_expressions_to_stdout():
 
     assert io.stdout
     assert len(io.stdout) == 2
-    assert io.stdout == [133, 15]
+    assert io.stdout == [ast.Int(133), ast.Int(15)]
 
 
 def test_assignment_from_variable():

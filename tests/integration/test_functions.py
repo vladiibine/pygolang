@@ -77,11 +77,13 @@ def test_calling_function_that_sums_its_arguments():
 
 def test_function_that_uses_global_scope_and_arguments_to_produce_result_qm7():
     io = FakeIO([
+        "var z int = 4",
         "func add(x int, y int) int {return x + y + z}",
-        "z = 4",
         "add(1, 2)",
     ])
 
     main(io)
 
-    assert io.stdout == [7]
+    assert not io.stderr, io.format_stderr_for_debugging()
+
+    assert io.stdout == [ast.Int(7)]
