@@ -22,4 +22,4 @@ def test_parse_bool_explicit():
     assert not io.stderr
     assert not io.stdout
     assert 'x' in scope
-    assert scope['x'][0] == ast.BoolLiteralTrue()
+    assert scope['x'][0] == ast.BoolLiteralTrue

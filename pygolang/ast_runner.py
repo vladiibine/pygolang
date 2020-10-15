@@ -44,7 +44,7 @@ class Runner:
 
         # TODO -> kill this check. ast.Leaf behaves the same, but
         #  we must make sure ast.BoolLiteral is a leaf (which now it's not)
-        elif isinstance(code, ast.BoolLiteral):
+        elif isinstance(code, ast.BoolValue):
             value = code
 
         elif isinstance(code, ast.FuncBody):

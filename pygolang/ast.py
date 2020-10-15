@@ -265,44 +265,23 @@ class ModuleRuntimeScope(AbstractRuntimeScope):
     pass
 
 
+class BoolValue(TypedValue):
+    _instance_cache = {}
 
+    def __new__(cls, value):
+        if value not in cls._instance_cache:
+            new_obj = object.__new__(cls)
+            cls.__init__(new_obj, value)
+            cls._instance_cache[value] = new_obj
 
-class BoolLiteral(TypedValue):
+        return cls._instance_cache[value]
+
     def __init__(self, value):
-        super(BoolLiteral, self).__init__(
-            value=BoolValue(value), type=BoolType
-        )
-
-    def __eq__(self, other):
-        if isinstance(other, BoolLiteral):
-            return self.value == other.value
-
-    def to_pygo_repr(self):
-        return self.value.to_pygo_repr()
-
-
-class BoolLiteralFalse(BoolLiteral):
-    def __init__(self, ):
-        super(BoolLiteralFalse, self).__init__(False)
-
-
-class BoolLiteralTrue(BoolLiteral):
-    def __init__(self):
-        super(BoolLiteralTrue, self).__init__(True)
-
-
-class BoolValue:
-    def __init__(self, value):
-        self.value = value
+        super(BoolValue, self).__init__(value=value, type=BoolType)
 
     def __eq__(self, other):
         if isinstance(other, BoolValue):
             return self.value == other.value
-
-    def __str__(self):
-        return str(self.value).lower()
-
-    __repr__ = __str__
 
     def to_pygo_repr(self):
         return f"{str(self.value).lower()}"
@@ -339,6 +318,9 @@ ASSIGNABLE_TYPES = [
     [BoolType, BoolType],
 ]
 
+# SINGLETONS
+BoolLiteralFalse = BoolValue(False)
+BoolLiteralTrue = BoolValue(True)
 
 # Singleton to mark that a variable was only declared, but not initialized
 ValueNotSet = ReprHelper('NotSet')
@@ -358,8 +340,6 @@ class Declaration:
         self.type_scope = type_scope
 
         self.type_scope.declare_variable_type(name, type)
-
-
 
 
 class TypeScope:

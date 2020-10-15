@@ -55,10 +55,10 @@ class PyGoParser:
                         | FALSE
         """
         if t.slice[1].type == 'TRUE':
-            t[0] = ast.BoolLiteralTrue()
+            t[0] = ast.BoolLiteralTrue
 
         else:
-            t[0] = ast.BoolLiteralFalse()
+            t[0] = ast.BoolLiteralFalse
         # t[0] = ast.Bool(t[1])
 
     def p_args_list(self, t):
