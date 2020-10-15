@@ -3,7 +3,7 @@ import ply.yacc as yacc
 from ply.lex import LexToken
 
 from pygolang import ast
-from pygolang.errors import PyGoGrammarError
+from pygolang.errors import PyGoGrammarError, PyGoConsoleLogoffError
 from . import common_grammar
 
 TYPE_MAP = {
@@ -271,7 +271,3 @@ class PyGoParser:
         if t and hasattr(t, 'value'):
             self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)
         raise PyGoConsoleLogoffError
-
-
-class PyGoConsoleLogoffError(Exception):
-    pass

@@ -5,9 +5,9 @@
 # from ply import yacc, lex
 
 from pygolang import parser_setup, ast_runner
-from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError
+from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
+    PyGoConsoleLogoffError
 from pygolang.io_callback import IO
-from pygolang.parser_setup import PyGoConsoleLogoffError
 from . import lexer_setup
 
 
