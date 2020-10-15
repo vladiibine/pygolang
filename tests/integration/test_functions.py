@@ -23,7 +23,7 @@ func asdf(name1 int)name2{
     assert not io.stdout
     assert len(state) == 1
     assert 'asdf' in state
-    assert isinstance(state['asdf'], ast.Func)
+    assert isinstance(state['asdf'], ast.FuncCreation)
 
 
 def test_calling_function_containing_only_a_return_statement():

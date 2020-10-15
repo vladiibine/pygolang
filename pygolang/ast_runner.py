@@ -42,6 +42,8 @@ class Runner:
             if value is not None:
                 self.io.to_stdout(value)
 
+        # TODO -> kill this check. ast.Leaf behaves the same, but
+        #  we must make sure ast.BoolLiteral is a leaf (which now it's not)
         elif isinstance(code, ast.BoolLiteral):
             value = code
 
@@ -80,7 +82,7 @@ class Runner:
             # else:
             #     raise PyGoGrammarError(f"Can't assign value to {key}!")
 
-        elif isinstance(code, ast.Func):
+        elif isinstance(code, ast.FuncCreation):
             self.set_in_scopes(code.name, code, scopes)
 
         # return result
@@ -134,11 +136,11 @@ class Runner:
             raise PyGoGrammarError(f"Trying to set a typeless value: {value}")
 
         if name in scopes[0]:
-            _, type_ = scopes[0].scope_dict[name]
+            _, type_ = scopes[0][name]
 
             if self.are_types_compatible(
                     declared_type=type_, assigned_value=value):
-                scopes[0].scope_dict[name] = value
+                scopes[0][name] = value
             else:
                 # Print something like this:
                 # ./file.go:6:6: cannot use true (type bool) as type int in assignment

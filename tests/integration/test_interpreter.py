@@ -1,3 +1,4 @@
+from pygolang import ast
 from pygolang.interpreter import main
 from tests.integration.io_callback_fixture import FakeIO
 
@@ -37,6 +38,7 @@ def test_assignment_from_variable():
 
 def test_interpreter_prints_out_things():
     io = FakeIO([
+        "var x int",
         "x=1",
         "x",
         "2",
@@ -48,9 +50,10 @@ def test_interpreter_prints_out_things():
 
     main(io, state)
 
+    assert not io.stderr, '\n'.join(str(e) for e in io.stderr)
     assert io.stdout
     assert len(io.stdout) == 3
-    assert io.stdout == [1, 2, 3]
+    assert io.stdout == [ast.Int(1), ast.Int(2), ast.Int(3)]
 
 
 def test_operators_and_expressions():

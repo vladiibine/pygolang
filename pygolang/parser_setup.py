@@ -3,11 +3,18 @@ import ply.yacc as yacc
 from ply.lex import LexToken
 
 from pygolang import ast
-from .common_grammar import tokens
+from pygolang.errors import PyGoGrammarError
+from . import common_grammar
+
+TYPE_MAP = {
+    'BOOL': ast.BoolType,
+    'INT': ast.IntType,
+    'STRING': ast.StringType,
+}
 
 
 class PyGoParser:
-    tokens = tokens
+    tokens = common_grammar.tokens
     precedence = (
         ('left', 'PLUS', 'MINUS'),
         ('left', 'TIMES', 'DIVIDE'),
@@ -31,9 +38,9 @@ class PyGoParser:
         t[0] = ast.Root(ast.InterpreterStart(t[1]))
 
     def p_expression_1(self, t):
-        """expression : NUMBER"""
-        if t.slice[1].type == 'NUMBER':
-            t.slice[0].value = ast.Number(t.slice[1].value)
+        """expression : INT"""
+        if t.slice[1].type == 'INT':
+            t.slice[0].value = ast.Int(t.slice[1].value)
 
     def p_expression_2(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
@@ -85,7 +92,7 @@ class PyGoParser:
                 type_scope=self.type_scope_stack.get_current_scope()
             )
 
-        elif len(t.slice) == 4:
+        elif len(t.slice) == 4 and t.slice[1].type == common_grammar.KEYWORDS.VAR.value:
             t[0] = ast.Declaration(
                 name=t[2],
                 type=t[3],
@@ -94,13 +101,14 @@ class PyGoParser:
 
     def p_type_declaration(self, t):
         """type_declaration : BOOL
-                            | NAME
+                            | INT
+                            | STRING
         """
-        if t.slice[1].type == 'BOOL':
-            t[0] = ast.BoolType
-        else:
-            pass
-        pass
+        try:
+            t[0] = TYPE_MAP[t.slice[1].type]
+        except KeyError:
+            raise PyGoGrammarError(
+                f"The type specified is not implemented: {t.slice[1].type}")
 
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
@@ -115,7 +123,7 @@ class PyGoParser:
 
     def p_func_statement(self, t):
         """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type new_scope_start func_body new_scope_end """
-        self.program_state[t[2]] = ast.Func(
+        self.program_state[t[2]] = ast.FuncCreation(
             name=t.slice[2].value,
             params=t.slice[4].value,
             return_type=t.slice[6].value,
@@ -133,7 +141,7 @@ class PyGoParser:
 
     def p_func_params(self, t):
         """func_params :
-                        | NAME NAME
+                        | NAME type_declaration
                         | NAME COMMA func_params
                         | func_params COMMA func_params
         """
@@ -141,7 +149,7 @@ class PyGoParser:
         t.slice[0].value = ast.FuncParams(t.slice[1:])
 
     def p_func_return_type(self, t):
-        """func_return_type : NAME """
+        """func_return_type : type_declaration """
         t.slice[0].value = t.slice[1:]
 
     def p_statement(self, t):

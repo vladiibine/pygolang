@@ -1,3 +1,4 @@
+# TODO -> this should be a ast.Leaf subclass
 class TypedValue:
     def __init__(self, value, type):
         """
@@ -30,13 +31,13 @@ class FuncCall:
         """
 
 
-class Func(TypedValue):
+class FuncCreation(TypedValue):
     def __init__(self, name, params, return_type, body):
         self.name = name
         self.params = params
         self.return_type = return_type
         self.body = body
-        super(Func, self).__init__(self, FuncType)
+        super(FuncCreation, self).__init__(self, FuncType)
 
     def get_params_and_types(self):
         # 1. match args to params
@@ -150,10 +151,17 @@ class Leaf:
     value = None  # Leafs have values
 
 
-class Number(TypedValue, Leaf):
+class Int(TypedValue, Leaf):
     def __init__(self, value):
         self.value = value
-        super(Number, self).__init__(value, NumberType)
+        super(Int, self).__init__(value, IntType)
+
+    def __eq__(self, other):
+        if isinstance(other, Int):
+            return self.value == other.value
+
+    def __repr__(self):
+        return f"ast.Int({self.value})"
 
 
 class Operator:
@@ -292,8 +300,13 @@ class Type:
         return f"{self.repr}"
 
     def is_assignable_from(self, other):
+        if self == other:
+            return True
+
         if [self, other] in ASSIGNABLE_TYPES:
             return True
+
+        return False
 
     def __eq__(self, other):
         return self.repr == other.repr
@@ -301,7 +314,8 @@ class Type:
 
 BoolType = Type("BoolType")
 FuncType = Type("FuncType")
-NumberType = Type("NumberType")
+IntType = Type("NumberType")
+StringType = Type("StringType")
 
 ASSIGNABLE_TYPES = [
     [BoolType, BoolType],

@@ -1,7 +1,7 @@
 import ply.lex as lex
 
 # Tokens
-from .common_grammar import tokens, keywords
+from .common_grammar import tokens, keywords_tuple
 
 
 class PyGoLexer:
@@ -9,7 +9,7 @@ class PyGoLexer:
     # names here are used via reflection.
     # Don't just rename them, everything will break!
     tokens = tokens
-    keywords = keywords
+    keywords = keywords_tuple
 
     t_PLUS = r'\+'
     t_MINUS = r'-'
@@ -50,7 +50,7 @@ class PyGoLexer:
 
     def t_NAME(self, t):
         r"""[a-zA-Z_][a-zA-Z0-9_]*"""
-        if t.value.upper() in keywords:
+        if t.value.upper() in keywords_tuple:
             t.type = t.value.upper()
 
         return t
@@ -59,7 +59,7 @@ class PyGoLexer:
         r"""[a-zA-Z_][a-zA-Z0-9_]*"""
         return t
 
-    def t_NUMBER(self, t):
+    def t_INT(self, t):
         r"""\d+"""
         try:
             t.value = int(t.value)
