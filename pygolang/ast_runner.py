@@ -84,6 +84,7 @@ class Runner:
             #     raise PyGoGrammarError(f"Can't assign value to {key}!")
 
         elif isinstance(code, ast.FuncCreation):
+            self.declare_in_scopes(code.name, ast.FuncType, scopes)
             self.set_in_scopes(code.name, code, scopes)
 
         # return result

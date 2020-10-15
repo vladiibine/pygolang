@@ -123,11 +123,16 @@ class PyGoParser:
 
     def p_func_statement(self, t):
         """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type new_scope_start func_body new_scope_end """
-        self.program_state[t[2]] = ast.FuncCreation(
+        t[0] = ast.FuncCreation(
             name=t.slice[2].value,
             params=t.slice[4].value,
             return_type=t.slice[6].value,
             body=t.slice[8].value)
+        # self.program_state[t[2]] = ast.FuncCreation(
+        #     name=t.slice[2].value,
+        #     params=t.slice[4].value,
+        #     return_type=t.slice[6].value,
+        #     body=t.slice[8].value)
 
     def p_new_scope_start(self, t):
         """new_scope_start : LBRACE"""

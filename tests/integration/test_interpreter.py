@@ -67,5 +67,6 @@ def test_operators_and_expressions():
 
     main(io, state)
 
+    assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == [4]
 

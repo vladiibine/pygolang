@@ -223,19 +223,19 @@ class Return:
 
 class AbstractRuntimeScope:
     def __init__(self, scope_dict):
-        self.scope_dict = scope_dict
+        self._scope_dict = scope_dict
 
     def __getitem__(self, item):
-        return self.scope_dict[item]
+        return self._scope_dict[item]
 
     def __setitem__(self, key, value):
-        self.scope_dict[key] = value
+        self._scope_dict[key] = value
 
     def __delitem__(self, key):
-        del self.scope_dict[key]
+        del self._scope_dict[key]
 
     def __contains__(self, item):
-        return item in self.scope_dict
+        return item in self._scope_dict
 
 
 class FuncRuntimeScope(AbstractRuntimeScope):
