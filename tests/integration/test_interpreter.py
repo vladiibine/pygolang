@@ -45,6 +45,8 @@ def test_interpreter_prints_out_things():
         "2",
         "func a(n int)int{return 3}",
         "a(0)",
+        "v := true",
+        "v"
     ])
 
     state = {}
@@ -53,8 +55,8 @@ def test_interpreter_prints_out_things():
 
     assert not io.stderr, '\n'.join(str(e) for e in io.stderr)
     assert io.stdout
-    assert len(io.stdout) == 3
-    assert io.stdout == ['1', '2', '3']
+    assert len(io.stdout) == 4
+    assert io.stdout == ['1', '2', '3', 'true']
 
 
 def test_operators_and_expressions():

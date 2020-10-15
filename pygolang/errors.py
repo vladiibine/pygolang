@@ -12,3 +12,7 @@ class StopPyGoLangInterpreterError(Exception):
 
 class PyGoGrammarError(Exception):
     pass
+
+
+class PyGoConsoleLogoffError(Exception):
+    pass

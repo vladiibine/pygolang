@@ -29,9 +29,10 @@ class ReprHelper:
 
 
 class FuncCall:
-    def __init__(self, func_name, args):
+    def __init__(self, func_name, args, type):
         self.func_name = func_name
         self.args = args
+        self.type = type
 
     def get_signature(self):
         """
@@ -55,6 +56,10 @@ class FuncCreation(TypedValue):
         super(FuncCreation, self).__init__(self, FuncType)
 
     def get_params_and_types(self):
+        return self.get_params_and_types_static(self.params.params)
+
+    @staticmethod
+    def get_params_and_types_static(params):
         # 1. match args to params
         # 2. put them in the scope
         # 3. run the code from its body as the list of instructions it contains
@@ -70,7 +75,7 @@ class FuncCreation(TypedValue):
         # TODO - move this logic in the ast.Function, during obj. construction
         # flatmap function params
         flat_param_definitions = []
-        for nested_param in self.params.params:
+        for nested_param in params:
             if nested_param.type == 'func_params':
                 for single_param in nested_param.value.params:
                     flat_param_definitions.append(single_param)
@@ -96,6 +101,27 @@ class FuncCreation(TypedValue):
                 prev_token = token  # handling commas
         params = list(zip(param_names, param_types))
         return params
+
+    @classmethod
+    def get_func_type(cls, params, rtype):
+        """Creates a type, which is the function type.
+
+        Contains information about the parameters types and type returned
+
+        :param list[FuncParams] params:
+        :param list[FuncReturnType] rtype:
+        :return:
+        """
+        param_types = [e[1] for e in cls.get_params_and_types_static(params.params)]
+        flat_return_type = []
+        for type_decl in rtype:
+            flat_return_type.append(type_decl.value)
+
+        # Create a signature for this function type, based on the types of its
+        # input params, and its returned type
+        return Type(
+            f"func ({', '.join(str(e) for e in param_types)}) {', '.join(str(e) for e in flat_return_type)}"
+        )
 
 
 class FuncParams:
@@ -409,4 +435,8 @@ class TypeScopeStack:
         self.scopes.pop()
 
     def get_current_scope(self):
+        """
+        :return:
+        :rtype: TypeScope
+        """
         return self.scopes[-1]
