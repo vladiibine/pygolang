@@ -1,5 +1,14 @@
-# TODO -> this should be a ast.Leaf subclass
-class TypedValue:
+class Value:
+    """Superclass for elements which are at the bottom of the ast tree.
+
+    They represent their own value, and don't need further processing
+    Examples: numbers, strings, arrays
+    Examples of things NOT leafs: function bodies, assignments
+    """
+    value = None  # Leafs have values
+
+
+class TypedValue(Value):
     def __init__(self, value, type):
         """
         :param object value:
@@ -33,6 +42,12 @@ class FuncCall:
 
 class FuncCreation(TypedValue):
     def __init__(self, name, params, return_type, body):
+        """
+        :param str name:
+        :param FuncParams params:
+        :param FuncReturnType return_type:
+        :param FuncBody body:
+        """
         self.name = name
         self.params = params
         self.return_type = return_type
@@ -55,9 +70,9 @@ class FuncCreation(TypedValue):
         # TODO - move this logic in the ast.Function, during obj. construction
         # flatmap function params
         flat_param_definitions = []
-        for nested_param in self.params.token:
+        for nested_param in self.params.params:
             if nested_param.type == 'func_params':
-                for single_param in nested_param.value.token:
+                for single_param in nested_param.value.params:
                     flat_param_definitions.append(single_param)
             else:
                 # it's a comma, not a nested param
@@ -84,13 +99,13 @@ class FuncCreation(TypedValue):
 
 
 class FuncParams:
-    def __init__(self, token):
-        self.token = token
+    def __init__(self, params):
+        self.params = params
 
 
 class FuncReturnType:
-    def __init__(self, token):
-        self.token = token
+    def __init__(self, rtype):
+        self.rtype = rtype
 
 
 class FuncBody:
@@ -109,13 +124,13 @@ class Name:
 
 
 class Expression:
-    def __init__(self, children, type_scope):
+    def __init__(self, child, type_scope):
         """
 
         :param TypeScope type_scope:
-        :param list[Node] children:
+        :param child:
         """
-        self.children = children
+        self.child = child
         self.type_scope_stack = type_scope
         self.type = self.determine_type()
 
@@ -141,16 +156,6 @@ class Expression:
         pass
 
 
-class Leaf:
-    """Superclass for elements which are at the bottom of the ast tree.
-
-    They represent their own value, and don't need further processing
-    Examples: numbers, strings, arrays
-    Examples of things NOT leafs: function bodies, assignments
-    """
-    value = None  # Leafs have values
-
-
 class OperatorDelegatorMixin:
     """Used for performing operations using its .value attribute
     """
@@ -167,7 +172,7 @@ class OperatorDelegatorMixin:
         return self.__class__(self.value.__divmod__(other.value))
 
 
-class Int(TypedValue, Leaf, OperatorDelegatorMixin):
+class Int(TypedValue, Value, OperatorDelegatorMixin):
     def __init__(self, value):
         self.value = value
         super(Int, self).__init__(value, IntType)
@@ -256,6 +261,9 @@ class AbstractRuntimeScope:
     def __contains__(self, item):
         return item in self._scope_dict
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._scope_dict})"
+
 
 class FuncRuntimeScope(AbstractRuntimeScope):
     pass
@@ -300,9 +308,6 @@ class Type:
         if self == other:
             return True
 
-        if [self, other] in ASSIGNABLE_TYPES:
-            return True
-
         return False
 
     def __eq__(self, other):
@@ -313,10 +318,6 @@ BoolType = Type("BoolType")
 FuncType = Type("FuncType")
 IntType = Type("IntType")
 StringType = Type("StringType")
-
-ASSIGNABLE_TYPES = [
-    [BoolType, BoolType],
-]
 
 # SINGLETONS
 BoolLiteralFalse = BoolValue(False)

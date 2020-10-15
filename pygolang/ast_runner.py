@@ -97,26 +97,11 @@ class Runner:
         elif isinstance(code, ast.Operator):
             value = self.run_operator(code, scopes)
 
-        elif isinstance(code, ast.Leaf):
+        elif isinstance(code, ast.Value):
             value = code
 
         elif isinstance(code, ast.Expression):
-            # we only know how to treat the NAME expression here
-            if len(code.children) == 1:
-                value = self.run(code.children[0], scopes)
-            else:
-                raise Exception("Didn't expect this too much")
-                # if isinstance(code.children[0], ast.Name):
-                #     # return self.state[code.children[0].value]
-                #     return self.find_in_scopes(code.children[0].value, scopes)
-                #
-                # elif isinstance(code.children[0], ast.Leaf):
-                #     return code.children[0]
-                #
-                # elif isinstance(code.children[0], ast.FuncCall):
-                #     return self.call_func(code.children[0], scopes)
-                #
-                # return self.run(code.children[0], scopes)
+            value = self.run(code.child, scopes)
 
         elif isinstance(code, ast.Return):
             value = self.run(code.value, scopes)
@@ -221,13 +206,12 @@ class Runner:
 
         # flatten function arguments
         flat_arguments = []
-        for func_args in func_call.args.arg_list if func_call.args else []:
-            for child in func_args.children:
-                if isinstance(child, ast.FuncArguments):
-                    for child_expr in child.arg_list:
-                        flat_arguments.append(child_expr)
-                else:
-                    flat_arguments.append(child)
+        for expression in func_call.args.arg_list if func_call.args else []:
+            if isinstance(expression.child, ast.FuncArguments):
+                for child_expr in expression.child.arg_list:
+                    flat_arguments.append(child_expr)
+            else:
+                flat_arguments.append(expression.child)
 
         # set in the new function scope the arguments as variables
         for (pname, ptype), arg_abstrat_value in zip(params, flat_arguments):

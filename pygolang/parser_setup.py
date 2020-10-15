@@ -72,7 +72,7 @@ class PyGoParser:
             # ...cuz the definition says they're all expressions I guess
             [
                 ast.Expression(
-                    children=[elem.value],
+                    child=elem.value,
                     type_scope=self.type_scope_stack.get_current_scope()
                 )
                 for elem in t.slice[1:] if elem.type != 'COMMA'
@@ -263,7 +263,7 @@ class PyGoParser:
                     expression_node = ast.Name(t.slice[1].value)
 
                     t.slice[0].value = ast.Expression(
-                        [expression_node],
+                        expression_node,
                         self.type_scope_stack.get_current_scope()
                     )
 
