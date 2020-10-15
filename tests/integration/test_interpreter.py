@@ -1,10 +1,11 @@
+from pygolang import ast
 from pygolang.interpreter import main
 from tests.integration.io_callback_fixture import FakeIO
 
 
 def test_prints_expressions_to_stdout():
     io = FakeIO([
-        """func asdf( name1 int)name2{return 133}""",
+        """func asdf( name1 int)int{return 133}""",
         """asdf(3)""",
         """15""",
     ])
@@ -14,13 +15,13 @@ def test_prints_expressions_to_stdout():
 
     assert io.stdout
     assert len(io.stdout) == 2
-    assert io.stdout == [133, 15]
+    assert io.stdout == ['133', '15']
 
 
 def test_assignment_from_variable():
     io = FakeIO([
-        """x=1""",
-        """y=x""",
+        """var x int = 1""",
+        """var y int = x""",
         """y"""
     ])
     state = {}
@@ -29,14 +30,16 @@ def test_assignment_from_variable():
 
     assert io.stdout
     assert len(io.stdout) == 1
-    assert io.stdout == [1]
+    assert io.stdout == ['1']
 
     assert 'y' in state
-    assert state['y'] == 1
+    assert state['y'][0] == ast.Int(1)
+    assert state['y'][1] == ast.IntType
 
 
 def test_interpreter_prints_out_things():
     io = FakeIO([
+        "var x int",
         "x=1",
         "x",
         "2",
@@ -48,9 +51,10 @@ def test_interpreter_prints_out_things():
 
     main(io, state)
 
+    assert not io.stderr, '\n'.join(str(e) for e in io.stderr)
     assert io.stdout
     assert len(io.stdout) == 3
-    assert io.stdout == [1, 2, 3]
+    assert io.stdout == ['1', '2', '3']
 
 
 def test_operators_and_expressions():
@@ -63,5 +67,6 @@ def test_operators_and_expressions():
 
     main(io, state)
 
-    assert io.stdout == [4]
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['4']
 

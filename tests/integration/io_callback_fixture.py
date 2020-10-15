@@ -1,4 +1,5 @@
-from pygolang.interpreter import IO, StopPyGoLangInterpreterError
+from pygolang.io_callback import IO
+from pygolang.errors import StopPyGoLangInterpreterError
 
 
 class FakeIO(IO):
@@ -36,3 +37,6 @@ class FakeIO(IO):
 
     def newline(self):
         pass
+
+    def format_stderr_for_debugging(self):
+        return '\n'.join(str(e) for e in self.stderr)

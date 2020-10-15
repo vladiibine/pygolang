@@ -1,21 +1,20 @@
 import ply.yacc as yacc
 
-###
-# Do not just rename variables in the next section!
-# They're used via reflection. Renaming them breaks everything
 from ply.lex import LexToken
 
 from pygolang import ast
-from .common_grammar import tokens
+from pygolang.errors import PyGoGrammarError
+from . import common_grammar
 
-
-#
-# THE END of the "DO NOT TOUCH" section
-###
+TYPE_MAP = {
+    'BOOL': ast.BoolType,
+    'INT': ast.IntType,
+    'STRING': ast.StringType,
+}
 
 
 class PyGoParser:
-    tokens = tokens
+    tokens = common_grammar.tokens
     precedence = (
         ('left', 'PLUS', 'MINUS'),
         ('left', 'TIMES', 'DIVIDE'),
@@ -28,6 +27,7 @@ class PyGoParser:
         self.io_callback = io
         self.program_state = state
 
+        self.type_scope_stack = ast.TypeScopeStack()
         self.parser = yacc.yacc(module=self)
 
     def parse(self, *a, **kw):
@@ -38,9 +38,9 @@ class PyGoParser:
         t[0] = ast.Root(ast.InterpreterStart(t[1]))
 
     def p_expression_1(self, t):
-        """expression : NUMBER"""
-        if t.slice[1].type == 'NUMBER':
-            t.slice[0].value = ast.Number(t.slice[1].value)
+        """expression : INT"""
+        if t.slice[1].type == 'INT':
+            t.slice[0].value = ast.Int(t.slice[1].value)
 
     def p_expression_2(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
@@ -49,6 +49,17 @@ class PyGoParser:
     def p_expression_3(self, t):
         """expression : NAME LPAREN RPAREN"""
         t[0] = ast.FuncCall(func_name=t[1], args=ast.FuncArguments([]))
+
+    def p_expression_4(self, t):
+        """expression : TRUE
+                        | FALSE
+        """
+        if t.slice[1].type == 'TRUE':
+            t[0] = ast.BoolLiteralTrue
+
+        else:
+            t[0] = ast.BoolLiteralFalse
+        # t[0] = ast.Bool(t[1])
 
     def p_args_list(self, t):
         """args_list : expression
@@ -59,12 +70,49 @@ class PyGoParser:
             # t.slice[1:]
             # How do I know if these are literals, names or expressions?
             # ...cuz the definition says they're all expressions I guess
-            [ast.Expression([elem.value]) for elem in t.slice[1:] if elem.type != 'COMMA']
+            [
+                ast.Expression(
+                    child=elem.value,
+                    type_scope=self.type_scope_stack.get_current_scope()
+                )
+                for elem in t.slice[1:] if elem.type != 'COMMA'
+            ]
         )
+
+    def p_declaration_statement(self, t):
+        """declaration_statement : VAR NAME type_declaration EQUALS expression
+                                | VAR NAME type_declaration
+                                | NAME WALRUS expression
+        """
+        if len(t.slice) == 6:
+            t[0] = ast.Declaration(
+                name=t[2],
+                type=t[3],
+                value=t[5],
+                type_scope=self.type_scope_stack.get_current_scope()
+            )
+
+        elif len(t.slice) == 4 and t.slice[1].type == common_grammar.KEYWORDS.VAR.value:
+            t[0] = ast.Declaration(
+                name=t[2],
+                type=t[3],
+                type_scope=self.type_scope_stack.get_current_scope()
+            )
+
+    def p_type_declaration(self, t):
+        """type_declaration : BOOL
+                            | INT
+                            | STRING
+        """
+        try:
+            t[0] = TYPE_MAP[t.slice[1].type]
+        except KeyError:
+            raise PyGoGrammarError(
+                f"The type specified is not implemented: {t.slice[1].type}")
 
     def p_assignment_statement(self, t):
         """assignment_statement : NAME EQUALS expression"""
-        t[0] = ast.Assignment(t[1], t[3])
+        t[0] = ast.Assignment(t[1], t[3], type_scope=self.type_scope_stack.get_current_scope())
         # self.program_state[t[1]] = t[3]
 
     def p_expression_statement(self, t):
@@ -74,28 +122,45 @@ class PyGoParser:
         # t.slice[0].value = t.slice[1].value
 
     def p_func_statement(self, t):
-        """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type LBRACE func_body RBRACE """
-        self.program_state[t[2]] = ast.Func(
+        """func_statement : FUNC NAME LPAREN func_params RPAREN func_return_type new_scope_start func_body new_scope_end """
+        t[0] = ast.FuncCreation(
             name=t.slice[2].value,
             params=t.slice[4].value,
             return_type=t.slice[6].value,
             body=t.slice[8].value)
+        # self.program_state[t[2]] = ast.FuncCreation(
+        #     name=t.slice[2].value,
+        #     params=t.slice[4].value,
+        #     return_type=t.slice[6].value,
+        #     body=t.slice[8].value)
+
+    def p_new_scope_start(self, t):
+        """new_scope_start : LBRACE"""
+        # Dummy rule, used only to mark the beginning of a new lexical scope
+        self.type_scope_stack.create_scope()
+
+    def p_new_scope_end(self, t):
+        """new_scope_end : RBRACE"""
+        # Dummy rule, used only to mark the end of a new lexical scope
+        self.type_scope_stack.pop_scope()
 
     def p_func_params(self, t):
         """func_params :
-                        | NAME NAME
+                        | NAME type_declaration
                         | NAME COMMA func_params
                         | func_params COMMA func_params
         """
+        # TODO -> BUG, this matches `<empty>, <empty>, ...`
         t.slice[0].value = ast.FuncParams(t.slice[1:])
 
     def p_func_return_type(self, t):
-        """func_return_type : NAME """
+        """func_return_type : type_declaration """
         t.slice[0].value = t.slice[1:]
 
     def p_statement(self, t):
         """statement : func_statement
                     | assignment_statement
+                    | declaration_statement
                     | expression_statement
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)
@@ -163,12 +228,44 @@ class PyGoParser:
         """expression : NAME"""
         # t.slice[0].value = self.program_state[t.slice[1].value]
 
+        """
+        When should an expression's value be determined?
+        1. It can be determined, for literals, at parse-time 
+        2. For names, it should be determined before run-time
+        3. Function calls it should be determined before run-time
+        4. Operators, again, before run-time
+
+        So the plan is to
+        1. Have the parser determine the type of literals
+        2. How to have the parser determine the type of names?
+            2.1. Solution: TypeScopes. See Expression.determine_type
+        3. Functions -> easy; type is specified
+        4. Operators -> easy; table of types
+        
+        So our problem really is determining the types of names.
+        For this we kind of need scopes before run-time, or smth.
+        1. We can use a stack of scopes(dicts)
+        2. Every time we exit a function, we should do a type check
+        3. Every time exit a block, we should do a type check
+        2. Every time we create a function, we should have all expressions(?) 
+            in it be checked for value matches
+            
+        What situations are there when we care about value match?
+        1. return statements
+        2. variable assignments
+        3. walrus declaration
+        3. operator usage
+        """
+
         if len(t.slice) == 2:
             if isinstance(t.slice[1], LexToken):
                 if t.slice[1].type == 'NAME':
                     expression_node = ast.Name(t.slice[1].value)
 
-                    t.slice[0].value = ast.Expression([expression_node])
+                    t.slice[0].value = ast.Expression(
+                        expression_node,
+                        self.type_scope_stack.get_current_scope()
+                    )
 
     def p_error(self, t):
         if t and hasattr(t, 'value'):

@@ -1,7 +1,7 @@
 import operator as py_operator
 
 from pygolang import ast
-
+from pygolang.errors import StopPyGoLangInterpreterError, PyGoGrammarError
 
 OPERATOR_MAP = {
     '+': py_operator.add,
@@ -13,11 +13,22 @@ OPERATOR_MAP = {
 
 class Runner:
     def __init__(self, io, state):
+        """
+
+        :param io:
+        :param dict|ast.ModuleRuntimeScope state: the program's starting state
+        """
         self.io = io
         # TODO -> access to this needs to be replaced with a call to a
         #  method which searches for variables in a list of scopes
         #  AND if it writes something, it writes in the first scope it gets
-        self.state = state
+        if isinstance(state, dict):
+            self.state = ast.ModuleRuntimeScope(state)
+        elif isinstance(state, ast.ModuleRuntimeScope):
+            self.state = state
+        else:
+            raise Exception(
+                "The program's state should be a module scope or a dict")
 
     def run(self, code, scopes=None):
         value = None
@@ -29,7 +40,12 @@ class Runner:
         elif isinstance(code, ast.InterpreterStart):
             value = self.run(code.value, scopes)
             if value is not None:
-                self.io.to_stdout(value)
+                self.io.to_stdout(value.to_pygo_repr())
+
+        # TODO -> kill this check. ast.Leaf behaves the same, but
+        #  we must make sure ast.BoolLiteral is a leaf (which now it's not)
+        elif isinstance(code, ast.BoolValue):
+            value = code
 
         elif isinstance(code, ast.FuncBody):
             for stmt in code.statements:
@@ -37,14 +53,38 @@ class Runner:
                 if isinstance(stmt, ast.Return):
                     break
 
-        elif isinstance(code, ast.Assignment):
+        elif isinstance(code, ast.Declaration):
             key = code.name
+            # value = code.value if code.value is ast.NotSet else self.run(code.value)
+            type_ = code.type
+
+            # TODO - at runtime, declarations should be replaced with
+            #  assignments of the type's empty value. Type info doesn't need
+            #  to be persisted at run-time, assuming all type checks have been
+            #  done before run-time
+            self.declare_in_scopes(key, type_, scopes)
+            if code.value is not ast.ValueNotSet:
+                assigned_value = self.run(code.value)
+                self.set_in_scopes(key, assigned_value, scopes)
+
+        elif isinstance(code, ast.Assignment):
+            # 1. see if the variable is declared in the current scope
+            # 2. if so, set it
+            # 3. TODO ERROR: var was not declared: the parser should have
+            #       raised an error, because that's not allowed
+            key = code.name
+            # self.set_in_scopes(key, ass)
+            # if self.can_assign_in_scopes(key, scopes):
             assigned_value = self.run(code.value, scopes)
-
-            # Global scope, until we implement per-something-else scope
             self.set_in_scopes(key, assigned_value, scopes)
+            #
+            #     # Global scope, until we implement per-something-else scope
+            #     self.set_in_scopes(key, assigned_value, scopes)
+            # else:
+            #     raise PyGoGrammarError(f"Can't assign value to {key}!")
 
-        elif isinstance(code, ast.Func):
+        elif isinstance(code, ast.FuncCreation):
+            self.declare_in_scopes(code.name, ast.FuncType, scopes)
             self.set_in_scopes(code.name, code, scopes)
 
         # return result
@@ -52,28 +92,16 @@ class Runner:
         elif isinstance(code, ast.Name):
             # TODO - replace global state with scopes
             # return self.state[exp.value]
-            return self.find_in_scopes(code.value, scopes)
+            value = self.find_in_scopes(code.value, scopes)
 
         elif isinstance(code, ast.Operator):
             value = self.run_operator(code, scopes)
 
-        elif isinstance(code, ast.Leaf):
-            value = code.value
+        elif isinstance(code, ast.Value):
+            value = code
 
         elif isinstance(code, ast.Expression):
-            # we only know how to treat the NAME expression here
-            if len(code.children) == 1:
-                if isinstance(code.children[0], ast.Name):
-                    # return self.state[code.children[0].value]
-                    return self.find_in_scopes(code.children[0].value, scopes)
-
-                elif isinstance(code.children[0], ast.Leaf):
-                    return code.children[0].value
-
-                elif isinstance(code.children[0], ast.FuncCall):
-                    return self.call_func(code.children[0], scopes)
-
-                return self.run(code.children[0], scopes)
+            value = self.run(code.child, scopes)
 
         elif isinstance(code, ast.Return):
             value = self.run(code.value, scopes)
@@ -87,7 +115,49 @@ class Runner:
         return value
 
     def set_in_scopes(self, name, value, scopes):
-        scopes[0][name] = value
+        """
+
+        :param str name:
+        :param ast.TypedValue value:
+        :param list[ast.AbstractRuntimeScope] scopes:
+        :return:
+        """
+        if not isinstance(value, ast.TypedValue):
+            raise PyGoGrammarError(f"Trying to set a typeless value: {value}")
+
+        if name in scopes[0]:
+            _, type_ = scopes[0][name]
+
+            # TODO -> should not do these kinds of checks at run-time
+            #   assignments and declarations have already been checked
+            #   at parse-time....Well, maybe if we have dynamic types, created
+            #   at run-time, this is justified, but this has not been the case
+            #   so far
+            if self.are_types_compatible(
+                    declared_type=type_, assigned_value=value):
+                scopes[0][name][0] = value
+            else:
+                # Print something like this:
+                # ./file.go:6:6: cannot use true (type bool) as type int in assignment
+                self.io.to_stderr(
+                    "pygo: Declared type ({}) and assigned type ({}) are not "
+                    "compatible"
+                    .format(type_, value)
+                )
+                raise StopPyGoLangInterpreterError
+
+        else:
+            # TODO print something like this
+            # ./invalid_assignment_without_declaration.go:7:14: undefined: x
+            self.io.to_stderr("undefined: {}".format(name))
+            raise StopPyGoLangInterpreterError
+        # scopes[0][name] = value
+
+    def are_types_compatible(self, declared_type, assigned_value):
+        if declared_type is assigned_value.type:
+            return True
+
+        return False
 
     def find_in_scopes(self, name, scopes):
         """
@@ -96,8 +166,12 @@ class Runner:
         :return:
         """
         for scope in scopes:
+            # Function scopes should be skipped when looking for variables
+            # ..this might get more complicated when creating
+            # if isinstance(scope, ast.FuncScope):
+            #     continue
             if name in scope:
-                return scope[name]
+                return scope[name][0]
 
         # well... should raise an error if the name is not in any scope
         #  BUT it's really the job of the parser to prevent this situation
@@ -124,7 +198,7 @@ class Runner:
         # 4. run the function's body using the new and previous scopes
         # 5. profit!
         scopes = scopes or []
-        scopes.insert(0, {})
+        scopes.insert(0, ast.FuncRuntimeScope({}))
 
         func = self.find_in_scopes(func_call.func_name, scopes)  # type: ast.Func
 
@@ -132,10 +206,12 @@ class Runner:
 
         # flatten function arguments
         flat_arguments = []
-        for func_args in func_call.args.arg_list if func_call.args else []:
-            for child in func_args.children:
-                for child_expr in child.arg_list:
+        for expression in func_call.args.arg_list if func_call.args else []:
+            if isinstance(expression.child, ast.FuncArguments):
+                for child_expr in expression.child.arg_list:
                     flat_arguments.append(child_expr)
+            else:
+                flat_arguments.append(expression.child)
 
         # set in the new function scope the arguments as variables
         for (pname, ptype), arg_abstrat_value in zip(params, flat_arguments):
@@ -143,7 +219,7 @@ class Runner:
 
             # TODO -> we don't check for types here, and we shouldn't
             #   What we should do is check types at parse time
-            scopes[0][pname] = arg_value
+            scopes[0][pname] = [arg_value, 'type-not-set-and-we-dont-need-to-set-it-yet']
 
         result = self.run(func.body, scopes=scopes)
 
@@ -151,5 +227,12 @@ class Runner:
         scopes.pop(0)
 
         return result
+
+    def declare_in_scopes(self, key, type_, scopes):
+        # Can only declare in the current scope
+        scopes[0][key] = [ast.ValueNotSet, type_]
+
+    def can_assign_in_scopes(self, key, scopes):
+        pass
 
 
