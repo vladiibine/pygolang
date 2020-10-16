@@ -291,11 +291,17 @@ class AbstractRuntimeScope:
         return f"{self.__class__.__name__}({self._scope_dict})"
 
 
+# TODO
+#  Not sure I need all these 4 types of scopes :| One is probably enough
 class FuncRuntimeScope(AbstractRuntimeScope):
     pass
 
 
 class ModuleRuntimeScope(AbstractRuntimeScope):
+    pass
+
+
+class BlockRuntimeScope(AbstractRuntimeScope):
     pass
 
 
@@ -440,3 +446,27 @@ class TypeScopeStack:
         :rtype: TypeScope
         """
         return self.scopes[-1]
+
+
+class Conditional:
+    def __init__(self, expression_block_pairs, final_block, scope):
+        """
+
+        :param list expression_block_pairs:
+            list of pairs(expression, block)
+        :param final_block: a list of statements, to execute as the fallback
+            for the chain of if-else-if-else.....if-else statements
+        :param TypeScope scope:
+        """
+        self.expression_block_pairs = expression_block_pairs
+        self.final_block = final_block
+        self.scope = scope
+
+
+class Block:
+    def __init__(self, statements):
+        """
+
+        :param list statements: a list of statements
+        """
+        self.statements = statements

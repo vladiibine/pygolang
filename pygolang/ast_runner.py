@@ -16,7 +16,7 @@ class Runner:
         """
 
         :param io:
-        :param dict|ast.ModuleRuntimeScope state: the program's starting state
+        :param dict|ast.AbstractRuntimeScope state: the program's starting state
         """
         self.io = io
         # TODO -> access to this needs to be replaced with a call to a
@@ -24,7 +24,8 @@ class Runner:
         #  AND if it writes something, it writes in the first scope it gets
         if isinstance(state, dict):
             self.state = ast.ModuleRuntimeScope(state)
-        elif isinstance(state, ast.ModuleRuntimeScope):
+
+        elif isinstance(state, ast.AbstractRuntimeScope):
             self.state = state
         else:
             raise Exception(
@@ -35,21 +36,41 @@ class Runner:
         scopes = scopes or [self.state]
 
         if isinstance(code, ast.Root):
-            value = self.run(code.value, scopes)
+            value = self.run(code.value, scopes)  # Root
 
         elif isinstance(code, ast.InterpreterStart):
-            value = self.run(code.value, scopes)
+            value = self.run(code.value, scopes)  # InterpreterStart
             if value is not None:
                 self.io.to_stdout(value.to_pygo_repr())
 
-        # TODO -> kill this check. ast.Leaf behaves the same, but
-        #  we must make sure ast.BoolLiteral is a leaf (which now it's not)
-        elif isinstance(code, ast.BoolValue):
-            value = code
+        elif isinstance(code, ast.Block):
+            for stmt in code.statements:
+                scopes.insert(0, ast.BlockRuntimeScope({}))
+                self.run(stmt, scopes)  # Block
+                scopes.pop(0)
+
+        elif isinstance(code, ast.Conditional):
+            # 1. iterate through the expression/block pairs
+            # 2. evaluate the truth value of conditions
+            # 3. at the first true condition, we evaluate the block
+            # 4. if we haven't executed any of the blocks AND there's a final
+            #      block, we evaluate that
+            for expression, block in code.expression_block_pairs:
+                expression_value = self.run(expression)  # Conditional, exp
+
+                # Interesting! In go, there's no true-ish value.
+                # Only true/false is expected, nothing else will work
+                if expression_value == ast.BoolLiteralTrue:
+                    self.run(block)  # Conditional, block
+                    break
+
+            else:
+                # This executes when no expression was true-ish
+                self.run(code.final_block)  # Conditional, final block
 
         elif isinstance(code, ast.FuncBody):
             for stmt in code.statements:
-                value = self.run(stmt, scopes)
+                value = self.run(stmt, scopes)  # FuncBody
                 if isinstance(stmt, ast.Return):
                     break
 
@@ -64,7 +85,7 @@ class Runner:
             #  done before run-time
             self.declare_in_scopes(key, type_, scopes)
             if code.value is not ast.ValueNotSet:
-                assigned_value = self.run(code.value)
+                assigned_value = self.run(code.value)  # Declaration
                 self.set_in_scopes(key, assigned_value, scopes)
 
         elif isinstance(code, ast.Assignment):
@@ -75,7 +96,7 @@ class Runner:
             key = code.name
             # self.set_in_scopes(key, ass)
             # if self.can_assign_in_scopes(key, scopes):
-            assigned_value = self.run(code.value, scopes)
+            assigned_value = self.run(code.value, scopes)  # Assignment
             self.set_in_scopes(key, assigned_value, scopes)
             #
             #     # Global scope, until we implement per-something-else scope
@@ -101,16 +122,16 @@ class Runner:
             value = code
 
         elif isinstance(code, ast.Expression):
-            value = self.run(code.child, scopes)
+            value = self.run(code.child, scopes)  # Expression
 
         elif isinstance(code, ast.Return):
-            value = self.run(code.value, scopes)
+            value = self.run(code.value, scopes)  # Return
 
         elif isinstance(code, ast.FuncCall):
-            value = self.call_func(code, scopes)
+            value = self.call_func(code, scopes)  # FuncCall
 
         elif isinstance(code, ast.Statement):
-            value = self.run(code.value, scopes)
+            value = self.run(code.value, scopes)  # Statement
 
         return value
 
@@ -125,33 +146,28 @@ class Runner:
         if not isinstance(value, ast.TypedValue):
             raise PyGoGrammarError(f"Trying to set a typeless value: {value}")
 
-        if name in scopes[0]:
-            _, type_ = scopes[0][name]
+        usable_scopes = list(scopes)
+        while usable_scopes:
+            current_scope = usable_scopes.pop(0)
+            if name in current_scope:
+                _, type_ = current_scope[name]
 
-            # TODO -> should not do these kinds of checks at run-time
-            #   assignments and declarations have already been checked
-            #   at parse-time....Well, maybe if we have dynamic types, created
-            #   at run-time, this is justified, but this has not been the case
-            #   so far
-            if self.are_types_compatible(
-                    declared_type=type_, assigned_value=value):
-                scopes[0][name][0] = value
-            else:
-                # Print something like this:
-                # ./file.go:6:6: cannot use true (type bool) as type int in assignment
-                self.io.to_stderr(
-                    "pygo: Declared type ({}) and assigned type ({}) are not "
-                    "compatible"
-                    .format(type_, value)
-                )
-                raise StopPyGoLangInterpreterError
-
-        else:
-            # TODO print something like this
-            # ./invalid_assignment_without_declaration.go:7:14: undefined: x
-            self.io.to_stderr("undefined: {}".format(name))
-            raise StopPyGoLangInterpreterError
-        # scopes[0][name] = value
+                # TODO -> should not do these kinds of checks at run-time
+                #   assignments and declarations have already been checked
+                #   at parse-time....Well, maybe if we have dynamic types,
+                #   created at run-time, this is justified, but this has not
+                #   been the case so far
+                if self.are_types_compatible(
+                        declared_type=type_, assigned_value=value):
+                    current_scope[name][0] = value
+                    return
+                else:
+                    raise PyGoGrammarError(
+                        f"Runtime error. Trying to set value {value} "
+                        f"for declared type {type_}. This code should not "
+                        f"have been executed at all, as it's syntactically "
+                        f"wrong"
+                    )
 
     def are_types_compatible(self, declared_type, assigned_value):
         if declared_type is assigned_value.type:
