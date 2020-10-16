@@ -10,6 +10,8 @@ class KEYWORDS(enum.Enum):
     BOOL = 'BOOL'
     STRING = 'STRING'
     INT = 'INT'
+    IF = 'IF'
+    ELSE = 'ELSE'
 
 
 class OPERATORS(enum.Enum):
