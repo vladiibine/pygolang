@@ -60,7 +60,10 @@ class FuncCreation(TypedValue):
         self.params = params
         self.return_type = return_type
         self.body = body
-        super(FuncCreation, self).__init__(self, FuncType)
+        super(FuncCreation, self).__init__(
+            self,
+            self.get_func_type(params, return_type)
+        )
 
     def get_params_and_types(self):
         return self.get_params_and_types_static(self.params.params)
@@ -120,8 +123,8 @@ class FuncCreation(TypedValue):
 
         Contains information about the parameters types and type returned
 
-        :param list[FuncParams] params:
-        :param list[FuncReturnType] rtype:
+        :param FuncParams params:
+        :param FuncReturnType rtype:
         :return:
         """
         param_types = [e[1] for e in cls.get_params_and_types_static(params.params)]

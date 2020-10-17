@@ -24,7 +24,11 @@ func asdf(name1 int)int{
     assert len(state) == 1
     assert 'asdf' in state
     assert isinstance(state['asdf'][0], ast.FuncCreation)
-    assert state['asdf'][1] == ast.FuncType
+
+    # yeah... hardcoding this repr string here for now.
+    # It's kind of cumbersome to create this string, so it's just fine like
+    # this for now.
+    assert state['asdf'][1].repr == 'func (IntType) IntType'
 
 
 def test_calling_function_containing_only_a_return_statement():

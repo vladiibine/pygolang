@@ -97,7 +97,11 @@ class Runner:
             #     raise PyGoGrammarError(f"Can't assign value to {key}!")
 
         elif isinstance(code, ast.FuncCreation):
-            self.declare_in_scopes(code.name, ast.FuncType, scopes)
+            self.declare_in_scopes(
+                key=code.name,
+                type_=ast.FuncCreation.get_func_type(code.params, code.return_type),
+                scopes=scopes
+            )
             self.set_in_scopes(code.name, code, scopes)
 
         # return result
@@ -162,7 +166,7 @@ class Runner:
                     )
 
     def are_types_compatible(self, declared_type, assigned_value):
-        if declared_type is assigned_value.type:
+        if declared_type == assigned_value.type:
             return True
 
         return False
