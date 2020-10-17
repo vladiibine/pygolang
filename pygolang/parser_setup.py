@@ -201,11 +201,26 @@ class PyGoParser:
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)
 
-    def p_conditional_statement(self, t):
-        """conditional_statement : IF expression new_scope_start block new_scope_end
-                                | IF expression new_scope_start block new_scope_end ELSE new_scope_start block new_scope_end
-                                | IF expression new_scope_start block new_scope_end ELSE conditional_statement
-        """
+    def p_conditional_statement_1(self, t):
+        """conditional_statement : IF expression new_scope_start block new_scope_end"""
+        t[0] = ast.Conditional(
+            [(t[2], t[4])],
+            [],
+            self.type_scope_stack.get_current_scope()
+        )
+
+    def p_conditional_statement_2(self, t):
+        """conditional_statement : conditional_statement ELSE conditional_statement"""
+        # inline the child conditionals into the current one:
+        t[0] = ast.Conditional(
+                t[1].expression_block_pairs + t[3].expression_block_pairs,
+                final_block=t[1].final_block or t[3].final_block,
+                scope=self.type_scope_stack.get_current_scope(),
+            )
+
+    def p_conditional_statement_3(self, t):
+        """conditional_statement : conditional_statement ELSE new_scope_start block new_scope_end"""
+
         # length of t.slice:
         # if expr { ... } = 1 5
         # if expr { ... } else { ... } = 1 5 4
@@ -219,19 +234,11 @@ class PyGoParser:
         # 1 5 (1 5)* (4)?
         # out of which, the expressions will be on opsitions 2, 8, 14, 20, 26: 2 + 6*N
         # and the blocks will be on positions: 4, 10, 16, 22, 28, 32: 4 + 6*N (+4)
-        final_block = None
-        if len(t.slice) % 6 == 4:
-            # We have a final ELSE block
-            # It's just before the last syntax element, which is the }
-            final_block = t.slice[len(t.slice) - 1].value
-
-        expressions = [e.value for e in t.slice[2::6]]
-        blocks = [e.value for e in t.slice[4::6]]
-
+        previous_conditional = t[1]  # type: ast.Conditional
         t[0] = ast.Conditional(
-            list(zip(expressions, blocks)),
-            final_block,
-            self.type_scope_stack.get_current_scope()
+            previous_conditional.expression_block_pairs,
+            final_block=t[4],
+            scope=self.type_scope_stack.get_current_scope()
         )
 
     def p_block(self, t):

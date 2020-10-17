@@ -69,3 +69,87 @@ def test_if_with_expression_from_func_call():
 
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['0', '1', '1']
+
+
+def test_chained_if_statements_no_final_else_with_true_at_the_end():
+    io = FakeIO([
+        'x := 1',
+        'if false {x = 2} else if true { x = 3}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['3']
+
+
+def test_chained_if_statements_with_true_in_the_middle_no_final_else():
+    io = FakeIO([
+        'x := 1',
+        'if false {x = 2} else if true { x = 3} else if true { x = 4}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['3']
+
+
+def test_chained_if_statements_with_true_in_the_middle_with_final_else():
+    io = FakeIO([
+        'x := 1',
+        'if false {x = 2} else if true { x = 3} else if true { x = 4} else {x = 5}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['3']
+
+
+def test_else_block_simple_if_statement():
+    io = FakeIO([
+        'x := 1',
+        'if false {x = 2} else {x = 3}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['3']
+
+
+def test_chained_if_with_final_else_fallback_block_executing():
+    io = FakeIO([
+        'x := 1',
+        'if false {x = 2} else if false { x = 3} else if false { x = 4} else {x = 5}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['5']
+
+
+def test_no_block_is_executed_except_for_the_one_with_an_expression_evaluating_to_true():
+    io = FakeIO([
+        'x := 1',
+        'y := 1',
+        'z := 1',
+        'if false {x = 2} else if false { y = 3} else if false { z = 4} else {x = 5}',
+        'x',
+        'y',
+        'z',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['5', '1', '1']
+
+
