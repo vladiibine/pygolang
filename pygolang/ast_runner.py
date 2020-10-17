@@ -1,14 +1,6 @@
-import operator as py_operator
-
 from pygolang import ast
-from pygolang.errors import StopPyGoLangInterpreterError, PyGoGrammarError
-
-OPERATOR_MAP = {
-    '+': py_operator.add,
-    '-': py_operator.sub,
-    '/': py_operator.truediv,
-    '*': py_operator.mul,
-}
+from pygolang.common_grammar import OPERATOR_MAP
+from pygolang.errors import PyGoGrammarError
 
 
 class Runner:
@@ -205,7 +197,7 @@ class Runner:
             operand1 = self.run(operand1_exp, scopes)
             operand2 = self.run(operand2_exp, scopes)
 
-            return OPERATOR_MAP[operator_expr.operator](operand1, operand2)
+            return operator_expr.operator_pyfunc(operand1, operand2)
 
     def call_func(self, func_call, scopes):
         # 1. find the function's parameters
@@ -245,6 +237,8 @@ class Runner:
         return result
 
     def declare_in_scopes(self, key, type_, scopes):
+        # TODO - refactor declare-in-scopes, find-in-scopes and set-in-scopes
+        #  These methods should be placed in the AbstractRuntimeScope class
         # Can only declare in the current scope
         scopes[0][key] = [ast.ValueNotSet, type_]
 

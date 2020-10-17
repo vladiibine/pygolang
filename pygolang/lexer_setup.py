@@ -24,6 +24,18 @@ class PyGoLexer:
     t_RBRACKET = r'\]'
     t_COMMA = r','
 
+    # Boolean operators
+    t_GREATER = '>'
+    t_LESSER = '<'
+    t_GREATEREQ = '>='
+    t_LESSEREQ = '<='
+    t_BOOLEQUALS = '=='
+    t_BOOLNOTEQUALS = '!='
+
+    t_BOOLAND = '&&'
+    t_BOOLOR = '\|\|'
+    t_NOT = '!'
+
     # Ignored characters
     t_ignore = " \t"
 

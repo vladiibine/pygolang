@@ -52,10 +52,11 @@ class PyGoParser:
     def p_expression_3(self, t):
         """expression : NAME LPAREN RPAREN"""
         current_scope = self.type_scope_stack.get_current_scope()
-        func_return_type = current_scope.get_variable_type(t[1])
+        func_type = current_scope.get_variable_type(t[1])  # type: ast.Type
 
         t[0] = ast.FuncCall(
-            func_name=t[1], args=ast.FuncArguments([]), type=func_return_type
+            func_name=t[1], args=ast.FuncArguments([]),
+            type=func_type.rtype
         )
 
     def p_expression_4(self, t):
@@ -150,24 +151,37 @@ class PyGoParser:
         #     body=t.slice[8].value)
 
     def p_func_statement(self, t):
-        """func_statement : FUNC func_signature new_scope_start func_body new_scope_end"""
-        t[0] = ast.FuncCreation(
-            name=t[2][0],
-            params=t[2][1],
-            return_type=t[2][2],
-            body=t[4]
+        """func_statement : func func_signature LBRACE func_body new_scope_end"""
+
+        func_creation = ast.FuncCreation(
+            name=t[2][0], params=t[2][1], return_type=t[2][2], body=t[4])
+        t[0] = func_creation
+
+        scope = self.type_scope_stack.get_current_scope()
+        scope.declare_variable_type(
+            func_creation.name,
+            func_creation.type
         )
+
+    def p_func(self, t):
+        """func : FUNC"""
+        # Dummy rule, created only so a new scope will be created
+        self.type_scope_stack.create_scope()
 
     def p_func_signature(self, t):
         """func_signature : NAME LPAREN func_params RPAREN func_return_type"""
         # Pass the values to the p_func_statement handler
-        t[0] = [t[1], t[3], t[5]]  # name, params, rtype
+        func_name = t[1]  # type: str
+        func_params = t[3]  # type: ast.FuncParams
+        func_rtype = t[5]  # type: ast.FuncReturnType
 
-        # and declare the function's type in the parent scope, likey global
+        t[0] = [func_name, func_params, func_rtype]  # name, params, rtype
+
+        # Declare the function's parameters in its type scope
+        param_types = ast.FuncCreation.get_params_and_types_static(func_params.params)
         scope = self.type_scope_stack.get_current_scope()
-        func_type = ast.FuncCreation.get_func_type(t[3], t[5])
-
-        scope.declare_variable_type(name=t[1], type=func_type)
+        for param, type_ in param_types:
+            scope.declare_variable_type(param, type_)
 
     def p_new_scope_start(self, t):
         """new_scope_start : LBRACE"""
@@ -275,12 +289,18 @@ class PyGoParser:
         """expression : expression PLUS expression
                       | expression MINUS expression
                       | expression TIMES expression
-                      | expression DIVIDE expression"""
-        operator_chars = {'+', '-', '/', '*'}
+                      | expression DIVIDE expression
+                      | expression BOOLEQUALS expression
+                      | expression BOOLNOTEQUALS expression
+                      | expression GREATER expression
+                      | expression LESSER expression
+                      | expression GREATEREQ expression
+                      | expression LESSEREQ expression
+        """
+        operator_chars = {'+', '-', '/', '*', '==', '!=', '>', '<', '>=', '<='}
 
         if t[2] in operator_chars:
-            t[0] = ast.Operator(t[2], [t[1], t[3]])
-            return
+            t[0] = ast.Operator(t[2], t.slice[2].type, [t[1], t[3]])
 
     #
     # def p_expression_uminus(t):

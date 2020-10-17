@@ -1,3 +1,10 @@
+import operator
+
+from pygolang import common_grammar
+from pygolang.common_grammar import OPERATOR_MAP
+from pygolang.errors import PyGoGrammarError
+
+
 class Value:
     """Superclass for elements which are at the bottom of the ast tree.
 
@@ -60,6 +67,11 @@ class FuncCreation(TypedValue):
 
     @staticmethod
     def get_params_and_types_static(params):
+        """
+
+        :param list[YaccSymbol|LexToken] params:
+        :return:
+        """
         # 1. match args to params
         # 2. put them in the scope
         # 3. run the code from its body as the list of instructions it contains
@@ -120,8 +132,16 @@ class FuncCreation(TypedValue):
         # Create a signature for this function type, based on the types of its
         # input params, and its returned type
         return Type(
-            f"func ({', '.join(str(e) for e in param_types)}) {', '.join(str(e) for e in flat_return_type)}"
+            f"func ({', '.join(str(e) for e in param_types)}) {', '.join(str(e) for e in flat_return_type)}",
+            rtype=flat_return_type[0] if len(flat_return_type) == 1 else flat_return_type or None
         )
+
+    def get_return_type(self, func):
+        """
+        :param FuncCreation func:
+        :return:
+        """
+        return self.return_type.rtype
 
 
 class FuncParams:
@@ -148,6 +168,9 @@ class Name:
     def __init__(self, value):
         self.value = value
 
+    def __repr__(self):
+        return f"<Name: '{self.value}'>"
+
 
 class Expression:
     def __init__(self, child, type_scope):
@@ -158,9 +181,9 @@ class Expression:
         """
         self.child = child
         self.type_scope_stack = type_scope
-        self.type = self.determine_type()
+        self.type = self.determine_type(child, type_scope)
 
-    def determine_type(self):
+    def determine_type(self, child, type_scope):
         """
         :return:
         """
@@ -179,7 +202,26 @@ class Expression:
         from anonymous functions.
             
         """
-        pass
+        if isinstance(child, Name):
+            return type_scope.get_variable_type(child.value)
+
+        elif isinstance(child, TypedValue):
+            return child.type
+
+        elif isinstance(child, Operator):
+            return child.type
+
+        # TODO - remove this hack!
+        #  It's a hack because the func_arg_list non-final grammar element
+        #  instead of returning a list of expressions, returns a list of
+        #  expressions which contain FunctionArguments yet again
+        #  We should make the p_func_arguments handler flatten all expressions
+        #  into the FunctionArgument's .arg_list
+        elif isinstance(child, FuncArguments):
+            return child.arg_list[0].type
+
+    def __repr__(self):
+        return f"<Expression: {self.child} of type {self.type}>"
 
 
 class OperatorDelegatorMixin:
@@ -215,9 +257,38 @@ class Int(TypedValue, Value, OperatorDelegatorMixin):
 
 
 class Operator:
-    def __init__(self, operator, args_list):
-        self.operator = operator
+    def __init__(self, operator_symbol, operator_token, args_list):
+        """
+        :param str operator_symbol: the characters of the operator, eg: '+'
+        :param operator_token: The name of the operator, as defined in the
+            grammar. Names are members of `pygolang.common_grammar.OPERATORS`
+        :param args_list:
+        """
+        self.operator = operator_symbol
         self.args_list = args_list
+        self.type, self.operator_pyfunc = self.determine_type_and_py_operator(
+            operator_symbol, operator_token, args_list
+        )
+
+        # TODO - operators will have a parse-time type.
+        #  This will be used for type checking
+        #  This type will be determined based on the operator, and the types
+        #  of the arguments
+
+    def determine_type_and_py_operator(self, symbol, operator_token, arg_list):
+        try:
+            return OPERATOR_TYPE_MAP[operator_token][arg_list[0].type][arg_list[1].type]
+        except KeyError:
+            raise PyGoGrammarError(
+                f"Operation not defined ({symbol} "
+                f"for {', '.join(str(e) for e in arg_list)} "
+                f"of types {', '.join(str(e.type) for e in arg_list)}"
+            )
+        except AttributeError:
+            raise PyGoGrammarError(
+                f"Invalid operation. No `type` attribute present for one of "
+                f"the operands: {arg_list[0]} {arg_list[1]}"
+            )
 
 
 class Assignment:
@@ -323,13 +394,17 @@ class BoolValue(TypedValue):
         if isinstance(other, BoolValue):
             return self.value == other.value
 
+    def __repr__(self):
+        return f"<BoolValue: {self.value}>"
+
     def to_pygo_repr(self):
         return f"{str(self.value).lower()}"
 
 
 class Type:
-    def __init__(self, repr):
+    def __init__(self, repr, rtype=None):
         self.repr = repr
+        self.rtype = rtype
 
     def __str__(self):
         return f"{self.repr}"
@@ -345,6 +420,9 @@ class Type:
     def __eq__(self, other):
         return self.repr == other.repr
 
+    def __hash__(self):
+        return hash(self.repr)
+
 
 BoolType = Type("BoolType")
 FuncType = Type("FuncType")
@@ -357,6 +435,24 @@ BoolLiteralTrue = BoolValue(True)
 
 # Singleton to mark that a variable was only declared, but not initialized
 ValueNotSet = ReprHelper('NotSet')
+
+# Map of resulting types after applying an operator, and actual python operator
+# to apply
+# Example: For '+' applied to IntType and IntType, the python operator to apply
+#  is operator.add, and the resulting type will be IntType
+_OPERATOR_TYPE_TABLE = [
+    [common_grammar.OPERATORS.PLUS, IntType, IntType, IntType, operator.add],
+    [common_grammar.OPERATORS.BOOLEQUALS, IntType, IntType, BoolType, operator.eq],
+    [common_grammar.OPERATORS.BOOLEQUALS, BoolType, BoolType, BoolType, operator.eq],
+    [common_grammar.OPERATORS.GREATER, IntType, IntType, BoolType, operator.gt],
+    [common_grammar.OPERATORS.LESSER, IntType, IntType, BoolType, operator.lt],
+]
+
+# {operator_token: {type1: {type2: [resulting_type, python_operator]}}}
+OPERATOR_TYPE_MAP = {
+    e[0].value: {e[1]: {e[2]: [e[3], e[4]]}} for e in _OPERATOR_TYPE_TABLE
+}
+
 
 
 class Declaration:
