@@ -26,3 +26,29 @@ def test_walrus_plus():
     assert not io.stderr, io.format_stderr_for_debugging()
     assert state['x'][0] == ast.Int(1)
     assert state['x'][1] == ast.IntType
+
+
+def test_int_boolean_operators():
+    io = FakeIO([
+        '1 > 0',
+        '1 < 0',
+
+        '1 >= 1',
+        '1 >= 2',
+
+        '1 == 1',
+        '1 == 2',
+        
+        '1 != 1',
+        '1 != 2',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == [
+        'true', 'false',
+        'true', 'false',
+        'true', 'false',
+        'false', 'true',
+    ]

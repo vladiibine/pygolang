@@ -1,4 +1,5 @@
 import operator
+from collections import defaultdict
 
 from pygolang import common_grammar
 from pygolang.common_grammar import OPERATOR_MAP
@@ -242,15 +243,33 @@ class OperatorDelegatorMixin:
     def __divmod__(self, other):
         return self.__class__(self.value.__divmod__(other.value))
 
+    def __gt__(self, other):
+        return BoolValue(self.value > other.value)
+
+    def __lt__(self, other):
+        return BoolValue(self.value < other.value)
+
+    def __ge__(self, other):
+        return BoolValue(self.value >= other.value)
+
+    def __le__(self, other):
+        return BoolValue(self.value <= other.value)
+
+    def __ne__(self, other):
+        return BoolValue(self.value != other.value)
+
+    def __eq__(self, other):
+        return BoolValue(self.value == other.value)
+
 
 class Int(TypedValue, Value, OperatorDelegatorMixin):
     def __init__(self, value):
         self.value = value
         super(Int, self).__init__(value, IntType)
 
-    def __eq__(self, other):
-        if isinstance(other, Int):
-            return self.value == other.value
+    # def __eq__(self, other):
+    #     if isinstance(other, Int):
+    #         return self.value == other.value
 
     def __repr__(self):
         return f"ast.Int({self.value})"
@@ -280,13 +299,18 @@ class Operator:
 
     def determine_type_and_py_operator(self, symbol, operator_token, arg_list):
         try:
-            return OPERATOR_TYPE_MAP[operator_token][arg_list[0].type][arg_list[1].type]
-        except KeyError:
-            raise PyGoGrammarError(
-                f"Operation not defined ({symbol} "
-                f"for {', '.join(str(e) for e in arg_list)} "
-                f"of types {', '.join(str(e.type) for e in arg_list)}"
-            )
+            type_, py_operator = OPERATOR_TYPE_MAP[
+                operator_token][arg_list[0].type][arg_list[1].type]
+
+            if {type_, py_operator} == {None}:
+                raise PyGoGrammarError(
+                    f"Operation not defined ({symbol}) "
+                    f"for {', '.join(str(e) for e in arg_list)} "
+                    f"of types {', '.join(str(e.type) for e in arg_list)}"
+                )
+
+            return type_, py_operator
+
         except AttributeError:
             raise PyGoGrammarError(
                 f"Invalid operation. No `type` attribute present for one of "
@@ -444,18 +468,31 @@ ValueNotSet = ReprHelper('NotSet')
 # Example: For '+' applied to IntType and IntType, the python operator to apply
 #  is operator.add, and the resulting type will be IntType
 _OPERATOR_TYPE_TABLE = [
+    # operators on INT
     [common_grammar.OPERATORS.PLUS, IntType, IntType, IntType, operator.add],
     [common_grammar.OPERATORS.BOOLEQUALS, IntType, IntType, BoolType, operator.eq],
-    [common_grammar.OPERATORS.BOOLEQUALS, BoolType, BoolType, BoolType, operator.eq],
+    [common_grammar.OPERATORS.BOOLNOTEQUALS, IntType, IntType, BoolType, operator.ne],
     [common_grammar.OPERATORS.GREATER, IntType, IntType, BoolType, operator.gt],
+    [common_grammar.OPERATORS.GREATEREQ, IntType, IntType, BoolType, operator.ge],
     [common_grammar.OPERATORS.LESSER, IntType, IntType, BoolType, operator.lt],
+    [common_grammar.OPERATORS.LESSEREQ, IntType, IntType, BoolType, operator.le],
+
+    # operators on BOOL
+    [common_grammar.OPERATORS.BOOLEQUALS, BoolType, BoolType, BoolType, operator.eq],
+    [common_grammar.OPERATORS.BOOLNOTEQUALS, BoolType, BoolType, BoolType, operator.ne],
 ]
 
-# {operator_token: {type1: {type2: [resulting_type, python_operator]}}}
-OPERATOR_TYPE_MAP = {
-    e[0].value: {e[1]: {e[2]: [e[3], e[4]]}} for e in _OPERATOR_TYPE_TABLE
-}
 
+def initialize_operator_type_map():
+    result = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [None, None])))
+    for op, arg1_type, arg2_type, return_type, py_operator in _OPERATOR_TYPE_TABLE:
+        result[op.value][arg1_type][arg2_type] = [return_type, py_operator]
+
+    return result
+
+
+# {operator_token: {type1: {type2: [resulting_type, python_operator]}}}
+OPERATOR_TYPE_MAP = initialize_operator_type_map()
 
 
 class Declaration:
