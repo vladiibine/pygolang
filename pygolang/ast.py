@@ -2,7 +2,6 @@ import operator
 from collections import defaultdict
 
 from pygolang import common_grammar
-from pygolang.common_grammar import OPERATOR_MAP
 from pygolang.errors import PyGoGrammarError
 
 
@@ -240,8 +239,14 @@ class OperatorDelegatorMixin:
     def __mul__(self, other):
         return self.__class__(self.value * other.value)
 
-    def __divmod__(self, other):
-        return self.__class__(self.value.__divmod__(other.value))
+    # def __divmod__(self, other):
+    #     return self.__class__(self.value % other.value)
+
+    def __floordiv__(self, other):
+        return self.__class__(self.value // other.value)
+
+    def __mod__(self, other):
+        return self.__class__(self.value % other.value)
 
     def __gt__(self, other):
         return BoolValue(self.value > other.value)
@@ -266,10 +271,6 @@ class Int(TypedValue, Value, OperatorDelegatorMixin):
     def __init__(self, value):
         self.value = value
         super(Int, self).__init__(value, IntType)
-
-    # def __eq__(self, other):
-    #     if isinstance(other, Int):
-    #         return self.value == other.value
 
     def __repr__(self):
         return f"ast.Int({self.value})"
@@ -468,8 +469,16 @@ ValueNotSet = ReprHelper('NotSet')
 # Example: For '+' applied to IntType and IntType, the python operator to apply
 #  is operator.add, and the resulting type will be IntType
 _OPERATOR_TYPE_TABLE = [
-    # operators on INT
+    ###
+    # Operators on Int
+    # Arithmetic operators
     [common_grammar.OPERATORS.PLUS, IntType, IntType, IntType, operator.add],
+    [common_grammar.OPERATORS.DIVIDE, IntType, IntType, IntType, operator.floordiv],
+    [common_grammar.OPERATORS.TIMES, IntType, IntType, IntType, operator.mul],
+    [common_grammar.OPERATORS.MINUS, IntType, IntType, IntType, operator.sub],
+    [common_grammar.OPERATORS.MODULO, IntType, IntType, IntType, operator.mod],
+
+    # boolean operators (still on Int)
     [common_grammar.OPERATORS.BOOLEQUALS, IntType, IntType, BoolType, operator.eq],
     [common_grammar.OPERATORS.BOOLNOTEQUALS, IntType, IntType, BoolType, operator.ne],
     [common_grammar.OPERATORS.GREATER, IntType, IntType, BoolType, operator.gt],

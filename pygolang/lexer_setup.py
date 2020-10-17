@@ -15,6 +15,7 @@ class PyGoLexer:
     t_MINUS = r'-'
     t_TIMES = r'\*'
     t_DIVIDE = r'/'
+    t_MODULO = r'\%'
     t_EQUALS = r'='
     t_LPAREN = r'\('
     t_RPAREN = r'\)'

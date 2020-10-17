@@ -1,5 +1,4 @@
 import enum
-import operator as py_operator
 
 
 class KEYWORDS(enum.Enum):
@@ -20,6 +19,7 @@ class OPERATORS(enum.Enum):
     MINUS = 'MINUS'
     TIMES = 'TIMES'
     DIVIDE = 'DIVIDE'
+    MODULO = 'MODULO'
 
     EQUALS = 'EQUALS'  # Used in assignments!
     WALRUS = 'WALRUS'
@@ -53,10 +53,3 @@ tokens = keywords_tuple + \
              'COMMA',  # ,
 
          )
-
-OPERATOR_MAP = {
-    '+': py_operator.add,
-    '-': py_operator.sub,
-    '/': py_operator.truediv,
-    '*': py_operator.mul,
-}

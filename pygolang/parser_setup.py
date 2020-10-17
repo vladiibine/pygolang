@@ -18,6 +18,7 @@ class PyGoParser:
     precedence = (
         ('left', 'PLUS', 'MINUS'),
         ('left', 'TIMES', 'DIVIDE'),
+        # ('left', 'MODULO'),
         # ('right', 'UMINUS'),
     )
 
@@ -290,6 +291,7 @@ class PyGoParser:
                       | expression MINUS expression
                       | expression TIMES expression
                       | expression DIVIDE expression
+                      | expression MODULO expression
                       | expression BOOLEQUALS expression
                       | expression BOOLNOTEQUALS expression
                       | expression GREATER expression
@@ -297,10 +299,10 @@ class PyGoParser:
                       | expression GREATEREQ expression
                       | expression LESSEREQ expression
         """
-        operator_chars = {'+', '-', '/', '*', '==', '!=', '>', '<', '>=', '<='}
+        # operator_chars = {'+', '-', '/', '*', '==', '!=', '>', '<', '>=', '<=', '%'}
 
-        if t[2] in operator_chars:
-            t[0] = ast.Operator(t[2], t.slice[2].type, [t[1], t[3]])
+        # if t[2] in operator_chars:
+        t[0] = ast.Operator(t[2], t.slice[2].type, [t[1], t[3]])
 
     #
     # def p_expression_uminus(t):

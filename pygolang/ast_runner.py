@@ -1,5 +1,4 @@
 from pygolang import ast
-from pygolang.common_grammar import OPERATOR_MAP
 from pygolang.errors import PyGoGrammarError
 
 

@@ -4,15 +4,21 @@ from pygolang.interpreter import main
 from tests.integration.io_callback_fixture import FakeIO
 
 
-def test_plus():
-    io = FakeIO(['1+1'])
+def test_int_arithmetic_operators():
+    io = FakeIO([
+        '1+1',
+        '1-1',
+        '2*3',
+        '3/2',
+        '17 % 13',
+    ])
 
     state = {}
 
     main(io, state)
 
-    assert io.stdout
-    assert io.stdout == ['2']
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['2', '0', '6', '1', '4']
     assert not io.stderr
 
 
