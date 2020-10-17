@@ -5,6 +5,7 @@ from ply.lex import LexToken
 from pygolang import ast
 from pygolang.errors import PyGoGrammarError, PyGoConsoleLogoffError
 from . import common_grammar
+from .common_grammar import OPERATORS
 
 TYPE_MAP = {
     'BOOL': ast.BoolType,
@@ -16,8 +17,13 @@ TYPE_MAP = {
 class PyGoParser:
     tokens = common_grammar.tokens
     precedence = (
-        ('left', 'PLUS', 'MINUS'),
-        ('left', 'TIMES', 'DIVIDE'),
+        # Precedence -> up=low; down=HIGH!
+        ('left', OPERATORS.NOT.value),
+        ('left', OPERATORS.BOOLOR.value),
+        ('left', OPERATORS.BOOLAND.value),
+        ('left', OPERATORS.BOOLEQUALS.value, OPERATORS.BOOLNOTEQUALS.value),
+        ('left', OPERATORS.PLUS.value, OPERATORS.MINUS.value, ),
+        ('left', OPERATORS.TIMES.value, OPERATORS.DIVIDE.value),
         # ('left', 'MODULO'),
         # ('right', 'UMINUS'),
     )
@@ -298,6 +304,9 @@ class PyGoParser:
                       | expression LESSER expression
                       | expression GREATEREQ expression
                       | expression LESSEREQ expression
+                      | expression BOOLAND expression
+                      | expression BOOLOR expression
+                      | expression NOT expression
         """
         # operator_chars = {'+', '-', '/', '*', '==', '!=', '>', '<', '>=', '<=', '%'}
 

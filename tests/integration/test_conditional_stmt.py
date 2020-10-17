@@ -164,3 +164,18 @@ def test_conditionals_work_with_boolean_expressions():
 
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['2']
+
+
+def test_conditionals_work_with_boolean_operators():
+    io = FakeIO([
+        'x := 1',
+        'if x == 1 && x != 2 {x = 2}',
+        'x',
+        'if 1 == 2 || 2 != 2 || 1 == 1 {x = 3}',
+        'x'
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['2', '3']

@@ -266,6 +266,16 @@ class OperatorDelegatorMixin:
     def __eq__(self, other):
         return BoolValue(self.value == other.value)
 
+    def __and__(self, other):
+        return BoolValue(self.value and other.value)
+
+    def __or__(self, other):
+        return BoolValue(self.value or other.value)
+
+    @staticmethod
+    def not_(first, second):
+        return BoolValue(first.value, second.value)
+
 
 class Int(TypedValue, Value, OperatorDelegatorMixin):
     def __init__(self, value):
@@ -404,7 +414,7 @@ class BlockRuntimeScope(AbstractRuntimeScope):
     pass
 
 
-class BoolValue(TypedValue):
+class BoolValue(TypedValue, OperatorDelegatorMixin):
     _instance_cache = {}
 
     def __new__(cls, value):
@@ -489,6 +499,9 @@ _OPERATOR_TYPE_TABLE = [
     # operators on BOOL
     [common_grammar.OPERATORS.BOOLEQUALS, BoolType, BoolType, BoolType, operator.eq],
     [common_grammar.OPERATORS.BOOLNOTEQUALS, BoolType, BoolType, BoolType, operator.ne],
+    [common_grammar.OPERATORS.BOOLAND, BoolType, BoolType, BoolType, operator.and_],
+    [common_grammar.OPERATORS.BOOLOR, BoolType, BoolType, BoolType, operator.or_],
+    [common_grammar.OPERATORS.NOT, BoolType, BoolType, BoolType, OperatorDelegatorMixin.not_],
 ]
 
 
