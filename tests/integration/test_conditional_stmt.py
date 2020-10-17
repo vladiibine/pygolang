@@ -153,3 +153,14 @@ def test_no_block_is_executed_except_for_the_one_with_an_expression_evaluating_t
     assert io.stdout == ['5', '1', '1']
 
 
+def test_conditionals_work_with_boolean_expressions():
+    io = FakeIO([
+        'x := 1',
+        'if x == 1 {x=2}',
+        'x',
+    ])
+
+    main(io)
+
+    assert not io.stderr, io.format_stderr_for_debugging()
+    assert io.stdout == ['2']
