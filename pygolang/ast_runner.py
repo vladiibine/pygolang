@@ -193,14 +193,12 @@ class Runner:
         :param list[dict] scopes:
         :return:
         """
-
-        if len(operator_expr.args_list) == 2:
-            operand1_exp, operand2_exp = operator_expr.args_list
-
-            operand1 = self.run(operand1_exp, scopes)
-            operand2 = self.run(operand2_exp, scopes)
-
-            return operator_expr.operator_pyfunc(operand1, operand2)
+        operands = [
+            self.run(operand_exp, scopes)
+            for operand_exp in operator_expr.args_list
+        ]
+        result = operator_expr.operator_pyfunc(*operands)
+        return result
 
     def call_func(self, func_call, scopes):
         # 1. find the function's parameters

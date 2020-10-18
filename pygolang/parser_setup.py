@@ -280,17 +280,10 @@ class PyGoParser:
         """return_statement : RETURN expression"""
         t.slice[0].value = ast.Return(t.slice[2].value)
 
-
-    # def p_compound_statement(t):
-    #     """compound_statement : return_statement
-    #                             | compound_statement return_statement
-    #     """
-    #     pass
-
-
-    # def p_statement_return_statement(t):
-    #     """statement : RETURN expression"""
-
+    def p_expression_group(self, t):
+        """expression : LPAREN expression RPAREN"""
+        # This is so we can group things with parentheses
+        t[0] = t[2]
 
     def p_expression_binop(self, t):
         """expression : expression PLUS expression

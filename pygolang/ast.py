@@ -273,7 +273,7 @@ class OperatorDelegatorMixin:
         return BoolValue(self.value or other.value)
 
     @staticmethod
-    def not_(_, operand):
+    def not_(operand):
         return BoolValue(not operand.value)
 
 
