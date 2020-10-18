@@ -19,8 +19,22 @@ class OPERATORS(enum.Enum):
     MINUS = 'MINUS'
     TIMES = 'TIMES'
     DIVIDE = 'DIVIDE'
-    EQUALS = 'EQUALS'
+    MODULO = 'MODULO'
+
+    EQUALS = 'EQUALS'  # Used in assignments!
     WALRUS = 'WALRUS'
+
+    GREATER = 'GREATER'
+    LESSER = 'LESSER'
+
+    GREATEREQ = 'GREATEREQ'
+    LESSEREQ = 'LESSEREQ'
+    BOOLEQUALS = 'BOOLEQUALS'  # ==, used for boolean operations
+    BOOLNOTEQUALS = 'BOOLNOTEQUALS'
+
+    BOOLAND = 'BOOLAND'
+    BOOLOR = 'BOOLOR'
+    NOT = 'NOT'
 
 
 keywords_tuple = tuple(e.name for e in KEYWORDS)

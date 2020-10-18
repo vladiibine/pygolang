@@ -1,14 +1,5 @@
-import operator as py_operator
-
 from pygolang import ast
-from pygolang.errors import StopPyGoLangInterpreterError, PyGoGrammarError
-
-OPERATOR_MAP = {
-    '+': py_operator.add,
-    '-': py_operator.sub,
-    '/': py_operator.truediv,
-    '*': py_operator.mul,
-}
+from pygolang.errors import PyGoGrammarError
 
 
 class Runner:
@@ -105,7 +96,11 @@ class Runner:
             #     raise PyGoGrammarError(f"Can't assign value to {key}!")
 
         elif isinstance(code, ast.FuncCreation):
-            self.declare_in_scopes(code.name, ast.FuncType, scopes)
+            self.declare_in_scopes(
+                key=code.name,
+                type_=ast.FuncCreation.get_func_type(code.params, code.return_type),
+                scopes=scopes
+            )
             self.set_in_scopes(code.name, code, scopes)
 
         # return result
@@ -170,7 +165,7 @@ class Runner:
                     )
 
     def are_types_compatible(self, declared_type, assigned_value):
-        if declared_type is assigned_value.type:
+        if declared_type == assigned_value.type:
             return True
 
         return False
@@ -198,14 +193,12 @@ class Runner:
         :param list[dict] scopes:
         :return:
         """
-
-        if len(operator_expr.args_list) == 2:
-            operand1_exp, operand2_exp = operator_expr.args_list
-
-            operand1 = self.run(operand1_exp, scopes)
-            operand2 = self.run(operand2_exp, scopes)
-
-            return OPERATOR_MAP[operator_expr.operator](operand1, operand2)
+        operands = [
+            self.run(operand_exp, scopes)
+            for operand_exp in operator_expr.args_list
+        ]
+        result = operator_expr.operator_pyfunc(*operands)
+        return result
 
     def call_func(self, func_call, scopes):
         # 1. find the function's parameters
@@ -245,6 +238,8 @@ class Runner:
         return result
 
     def declare_in_scopes(self, key, type_, scopes):
+        # TODO - refactor declare-in-scopes, find-in-scopes and set-in-scopes
+        #  These methods should be placed in the AbstractRuntimeScope class
         # Can only declare in the current scope
         scopes[0][key] = [ast.ValueNotSet, type_]
 
