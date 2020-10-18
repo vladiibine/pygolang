@@ -273,8 +273,8 @@ class OperatorDelegatorMixin:
         return BoolValue(self.value or other.value)
 
     @staticmethod
-    def not_(first, second):
-        return BoolValue(first.value, second.value)
+    def not_(_, operand):
+        return BoolValue(not operand.value)
 
 
 class Int(TypedValue, Value, OperatorDelegatorMixin):
@@ -310,17 +310,31 @@ class Operator:
 
     def determine_type_and_py_operator(self, symbol, operator_token, arg_list):
         try:
-            type_, py_operator = OPERATOR_TYPE_MAP[
-                operator_token][arg_list[0].type][arg_list[1].type]
+            # Have as many args as you'd like for an operator, we'll go through
+            # as many as provided
+            current_args = arg_list
+            result = OPERATOR_TYPE_MAP[operator_token]
+            try:
+                while current_args:
+                    result = result[current_args[0].type]
+                    current_args = current_args[1:]
 
-            if {type_, py_operator} == {None}:
+                type_, py_operator = result
+
+                if {type_, py_operator} == {None}:
+                    raise PyGoGrammarError(
+                        f"Operation not defined ({symbol}) "
+                        f"for {', '.join(str(e) for e in arg_list)} "
+                        f"of types {', '.join(str(e.type) for e in arg_list)}"
+                    )
+
+                return type_, py_operator
+            except KeyError as err:
                 raise PyGoGrammarError(
-                    f"Operation not defined ({symbol}) "
-                    f"for {', '.join(str(e) for e in arg_list)} "
-                    f"of types {', '.join(str(e.type) for e in arg_list)}"
+                    f"Invalid operation ({symbol}) for "
+                    f"{', '.join(str(e) for e in arg_list)} "
+                    f"of types {', '.join(str(e.type) if hasattr(e, 'type') else '<unknown>' for e in arg_list)}"
                 )
-
-            return type_, py_operator
 
         except AttributeError:
             raise PyGoGrammarError(
@@ -501,20 +515,39 @@ _OPERATOR_TYPE_TABLE = [
     [common_grammar.OPERATORS.BOOLNOTEQUALS, BoolType, BoolType, BoolType, operator.ne],
     [common_grammar.OPERATORS.BOOLAND, BoolType, BoolType, BoolType, operator.and_],
     [common_grammar.OPERATORS.BOOLOR, BoolType, BoolType, BoolType, operator.or_],
-    [common_grammar.OPERATORS.NOT, BoolType, BoolType, BoolType, OperatorDelegatorMixin.not_],
+    [common_grammar.OPERATORS.NOT, BoolType, BoolType, OperatorDelegatorMixin.not_],
 ]
 
 
-def initialize_operator_type_map():
+def initialize_operator_type_map(flat_type_map):
     result = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [None, None])))
-    for op, arg1_type, arg2_type, return_type, py_operator in _OPERATOR_TYPE_TABLE:
-        result[op.value][arg1_type][arg2_type] = [return_type, py_operator]
+
+    result = {}
+    for op, *operand_types, return_type, py_operator in flat_type_map:
+        # entry = result[op.value]
+        if op.value not in result:
+            result[op.value] = {}
+        entry = result[op.value]
+
+        usable_types = operand_types[:-1]
+        while usable_types:
+            # entry = entry[usable_types[0]]
+            if usable_types[0] not in entry:
+                entry[usable_types[0]] = {}
+
+            entry = entry[usable_types[0]]
+            usable_types = usable_types[1:]
+
+        entry[operand_types[-1]] = [return_type, py_operator]
 
     return result
 
 
+# For binary operators:
 # {operator_token: {type1: {type2: [resulting_type, python_operator]}}}
-OPERATOR_TYPE_MAP = initialize_operator_type_map()
+# OR for unary operators
+# {operator_token: {type1: [resulting_type, python_operator]}}
+OPERATOR_TYPE_MAP = initialize_operator_type_map(_OPERATOR_TYPE_TABLE)
 
 
 class Declaration:

@@ -18,12 +18,12 @@ class PyGoParser:
     tokens = common_grammar.tokens
     precedence = (
         # Precedence -> up=low; down=HIGH!
-        ('left', OPERATORS.NOT.value),
         ('left', OPERATORS.BOOLOR.value),
         ('left', OPERATORS.BOOLAND.value),
         ('left', OPERATORS.BOOLEQUALS.value, OPERATORS.BOOLNOTEQUALS.value),
         ('left', OPERATORS.PLUS.value, OPERATORS.MINUS.value, ),
         ('left', OPERATORS.TIMES.value, OPERATORS.DIVIDE.value),
+        ('left', OPERATORS.NOT.value),
         # ('left', 'MODULO'),
         # ('right', 'UMINUS'),
     )
@@ -306,12 +306,15 @@ class PyGoParser:
                       | expression LESSEREQ expression
                       | expression BOOLAND expression
                       | expression BOOLOR expression
-                      | expression NOT expression
+                      | NOT expression
         """
         # operator_chars = {'+', '-', '/', '*', '==', '!=', '>', '<', '>=', '<=', '%'}
 
         # if t[2] in operator_chars:
-        t[0] = ast.Operator(t[2], t.slice[2].type, [t[1], t[3]])
+        if len(t.slice) == 4:
+            t[0] = ast.Operator(t[2], t.slice[2].type, [t[1], t[3]])
+        elif len(t.slice) == 3:
+            t[0] = ast.Operator(t[1], t.slice[1].type, [t[2]])
 
     #
     # def p_expression_uminus(t):

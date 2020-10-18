@@ -58,3 +58,18 @@ def test_int_boolean_operators():
         'true', 'false',
         'false', 'true',
     ]
+
+
+def test_not_operator_fails_like_in_golang():
+    io = FakeIO([
+        'x := 1',
+        'if ! 1 == 2 {x = 2}',
+        'x',
+    ])
+
+    main(io)
+
+    assert io.stderr
+    assert 'Invalid operation (!)' in io.stderr[1]
+    assert io.stdout == ['1']
+
