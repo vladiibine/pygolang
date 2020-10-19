@@ -219,8 +219,14 @@ class PyGoParser:
                     | declaration_statement
                     | expression_statement
                     | conditional_statement
+                    | import_statement
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)
+
+    def p_go_statement(self, t):
+        """import_statement : IMPORT DOUBLEQUOTE NAME DOUBLEQUOTE """
+        # TODO -> nope, this is wrong, as it would match `"  fmt  "`
+        #  we must implement strings before we implement imports
 
     def p_conditional_statement_1(self, t):
         """conditional_statement : IF expression new_scope_start block new_scope_end"""

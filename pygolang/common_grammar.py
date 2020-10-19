@@ -2,16 +2,17 @@ import enum
 
 
 class KEYWORDS(enum.Enum):
-    FUNC = 'FUNC'
-    RETURN = 'RETURN'
-    VAR = 'VAR'
-    TRUE = 'TRUE'
-    FALSE = 'FALSE'
     BOOL = 'BOOL'
-    STRING = 'STRING'
-    INT = 'INT'
-    IF = 'IF'
     ELSE = 'ELSE'
+    FALSE = 'FALSE'
+    FUNC = 'FUNC'
+    IF = 'IF'
+    INT = 'INT'
+    IMPORT = 'IMPORT'
+    RETURN = 'RETURN'
+    STRING = 'STRING'
+    TRUE = 'TRUE'
+    VAR = 'VAR'
 
 
 class OPERATORS(enum.Enum):
@@ -37,19 +38,28 @@ class OPERATORS(enum.Enum):
     NOT = 'NOT'
 
 
+class SYNTAX(enum.Enum):
+    LPAREN = 'LPAREN'  # (
+    RPAREN = 'RPAREN'  # )
+    LBRACE = 'LBRACE'  # {
+    RBRACE = 'RBRACE'  # }
+    LBRACKET = 'LBRACKET'  # [
+    RBRACKET = 'RBRACKET'  # ]
+
+    DOUBLEQUOTE = 'DOUBLEQUOTE'  # "
+    SINGLEQUOTE = 'SINGLEQUOTE'  # '
+
+    COMMA = 'COMMA'  # ,
+
+
 keywords_tuple = tuple(e.name for e in KEYWORDS)
-
-
 operators_tuple = tuple(e.name for e in OPERATORS)
+syntax_tuple = tuple(e.name for e in SYNTAX)
 
 tokens = keywords_tuple + \
          operators_tuple + \
+         syntax_tuple + \
          (
              'TYPE',  # what is this now? Surely this is wrong? NAME suffices
              'NAME',
-             'LPAREN', 'RPAREN',  # ( )
-             'LBRACE', 'RBRACE',  # { }
-             'LBRACKET', 'RBRACKET',  # [ ]
-             'COMMA',  # ,
-
          )

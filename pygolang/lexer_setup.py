@@ -68,10 +68,6 @@ class PyGoLexer:
 
         return t
 
-    def t_TYPE(self, t):
-        r"""[a-zA-Z_][a-zA-Z0-9_]*"""
-        return t
-
     def t_INT(self, t):
         r"""\d+"""
         try:
