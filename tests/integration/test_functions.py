@@ -28,7 +28,7 @@ func asdf(name1 int)int{
     # yeah... hardcoding this repr string here for now.
     # It's kind of cumbersome to create this string, so it's just fine like
     # this for now.
-    assert state['asdf'][1].repr == 'func (IntType) IntType'
+    assert state['asdf'][1].repr == 'func (int) int'
 
 
 def test_calling_function_containing_only_a_return_statement():

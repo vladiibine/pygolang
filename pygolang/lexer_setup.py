@@ -57,6 +57,11 @@ class PyGoLexer:
         self.lexer = self.build_lexer()
         # self.type_scope_stack = type_scope_stack
 
+    def t_STRING(self, t):
+        r""""(?:[^"\\]|\\.)*\""""
+        t.value = t.value[1:-1]
+        return t
+
     def t_WALRUS(self, t):
         r""":="""
         return t
@@ -66,10 +71,6 @@ class PyGoLexer:
         if t.value.upper() in keywords_tuple:
             t.type = t.value.upper()
 
-        return t
-
-    def t_TYPE(self, t):
-        r"""[a-zA-Z_][a-zA-Z0-9_]*"""
         return t
 
     def t_INT(self, t):

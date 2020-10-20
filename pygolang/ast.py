@@ -24,6 +24,9 @@ class TypedValue(Value):
         self.value = value
         self.type = type
 
+    def to_pygo_repr(self):
+        raise NotImplementedError
+
 
 class ReprHelper:
     def __init__(self, repr_string):
@@ -476,10 +479,10 @@ class Type:
         return hash(self.repr)
 
 
-BoolType = Type("BoolType")
-FuncType = Type("FuncType")
-IntType = Type("IntType")
-StringType = Type("StringType")
+BoolType = Type("bool")
+FuncType = Type("func")  # This needs to be deprecated/removed
+IntType = Type("int")
+StringType = Type("string")
 
 # SINGLETONS
 BoolLiteralFalse = BoolValue(False)
@@ -516,6 +519,15 @@ _OPERATOR_TYPE_TABLE = [
     [common_grammar.OPERATORS.BOOLAND, BoolType, BoolType, BoolType, operator.and_],
     [common_grammar.OPERATORS.BOOLOR, BoolType, BoolType, BoolType, operator.or_],
     [common_grammar.OPERATORS.NOT, BoolType, BoolType, OperatorDelegatorMixin.not_],
+
+    ### Operators on STR
+    [common_grammar.OPERATORS.BOOLEQUALS, StringType, StringType, BoolType, operator.eq],
+    [common_grammar.OPERATORS.BOOLNOTEQUALS, StringType, StringType, BoolType, operator.ne],
+    [common_grammar.OPERATORS.PLUS, StringType, StringType, BoolType, operator.add],
+    [common_grammar.OPERATORS.GREATER, StringType, StringType, BoolType, operator.gt],
+    [common_grammar.OPERATORS.GREATEREQ, StringType, StringType, BoolType, operator.ge],
+    [common_grammar.OPERATORS.LESSER, StringType, StringType, BoolType, operator.lt],
+    [common_grammar.OPERATORS.LESSEREQ, StringType, StringType, BoolType, operator.le],
 ]
 
 
@@ -661,3 +673,12 @@ class Block:
         :param list statements: a list of statements
         """
         self.statements = statements
+
+
+class String(TypedValue, OperatorDelegatorMixin):
+    def __init__(self, value):
+        super(String, self).__init__(value, StringType)
+
+    def to_pygo_repr(self):
+        repr_value = '"{}"'.format(self.value)
+        return repr_value
