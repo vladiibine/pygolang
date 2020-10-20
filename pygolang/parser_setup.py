@@ -44,12 +44,16 @@ class PyGoParser:
         """interpreter_start : statement"""
         t[0] = ast.Root(ast.InterpreterStart(t[1]))
 
-    def p_expression_1(self, t):
+    def p_expression_int(self, t):
         """expression : INT"""
         if t.slice[1].type == 'INT':
             t.slice[0].value = ast.Int(t.slice[1].value)
 
-    def p_expression_2(self, t):
+    def p_expression_string(self, t):
+        """expression : STRING"""
+        t[0] = ast.String(t[1])
+
+    def p_expression_func_call(self, t):
         """expression : NAME LPAREN args_list RPAREN"""
         current_scope = self.type_scope_stack.get_current_scope()
         func_return_type = current_scope.get_variable_type(t[1])
