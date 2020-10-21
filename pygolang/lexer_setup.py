@@ -41,7 +41,7 @@ class PyGoLexer:
     # Ignored characters
     t_ignore = " \t"
 
-    def __init__(self, side_effects, type_scope_stack=None):
+    def __init__(self, side_effects):
         """
 
         :param pygolang.side_effects.SideEffects side_effects: Need this parameter
