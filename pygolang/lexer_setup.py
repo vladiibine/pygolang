@@ -35,7 +35,7 @@ class PyGoLexer:
     t_BOOLNOTEQUALS = '!='
 
     t_BOOLAND = '&&'
-    t_BOOLOR = '\|\|'
+    t_BOOLOR = r'\|\|'
     t_NOT = '!'
 
     # Ignored characters
