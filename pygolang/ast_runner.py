@@ -1,3 +1,5 @@
+import importlib
+
 from pygolang import ast
 from pygolang.errors import PyGoGrammarError
 
@@ -33,6 +35,32 @@ class Runner:
             value = self.run(code.value, scopes)  # InterpreterStart
             if value is not None:
                 self.io.to_stdout(value.to_pygo_repr())
+
+        elif isinstance(code, ast.Import):
+            # 0. TODO -> Determine the import path. Will be useful for when
+            #     importing other packages, and for displaying errors like
+            #     go does. Go displays all the paths where it looked for
+            #     packages, looking at env vars like $GOPATH and $GOROOT
+            # 1. find the imported module
+            # 2. import it
+            # 3. get a list of (key, value) pairs
+            # 4. add the keys/values to the current namespace
+
+            try:
+                module = importlib.import_module(f'.stdlib.{code.import_str}', 'pygolang')
+            except ImportError:
+                self.io.to_stderr(
+                    f'cannot find package "{code.import_str}" in any of'
+                )
+                return
+
+            for name in dir(module):
+                obj = getattr(module, name)
+                if isinstance(obj, ast.NativeFunction):
+                    qualified_name = '.'.join([code.import_str, name])
+                    self.declare_in_scopes(
+                        qualified_name, obj.type, scopes)
+                    self.set_in_scopes(qualified_name, obj, scopes)
 
         elif isinstance(code, ast.Block):
             for stmt in code.statements:
@@ -76,8 +104,12 @@ class Runner:
             #  done before run-time
             self.declare_in_scopes(key, type_, scopes)
             if code.value is not ast.ValueNotSet:
-                assigned_value = self.run(code.value)  # Declaration
-                self.set_in_scopes(key, assigned_value, scopes)
+                assigned_value = self.run(code.value)  #
+                try:
+                    self.set_in_scopes(key, assigned_value, scopes)
+                except Exception as err:
+                    raise err
+
 
         elif isinstance(code, ast.Assignment):
             # 1. see if the variable is declared in the current scope
@@ -88,7 +120,7 @@ class Runner:
             # self.set_in_scopes(key, ass)
             # if self.can_assign_in_scopes(key, scopes):
             assigned_value = self.run(code.value, scopes)  # Assignment
-            self.set_in_scopes(key, assigned_value, scopes)
+            self.set_in_scopes(key[0], assigned_value, scopes)
             #
             #     # Global scope, until we implement per-something-else scope
             #     self.set_in_scopes(key, assigned_value, scopes)
@@ -108,7 +140,7 @@ class Runner:
         elif isinstance(code, ast.Name):
             # TODO - replace global state with scopes
             # return self.state[exp.value]
-            value = self.find_in_scopes(code.value, scopes)
+            value = self.find_in_scopes(code.get_qualified_name(), scopes)
 
         elif isinstance(code, ast.Operator):
             value = self.run_operator(code, scopes)
@@ -200,6 +232,15 @@ class Runner:
         result = operator_expr.operator_pyfunc(*operands)
         return result
 
+    def call_native_func(self, func, scope):
+        """
+        :param ast.NativeFunction func:
+        :param dict[str,object] scope:
+        :return: 
+        """
+        result = func.call(self.io, scope)
+        return result
+
     def call_func(self, func_call, scopes):
         # 1. find the function's parameters
         # 2. match them against the arguments
@@ -207,12 +248,41 @@ class Runner:
         # 4. run the function's body using the new and previous scopes
         # 5. profit!
         scopes = scopes or []
+        # This is not necessary for native functions atm. They're just called
+        # with their arguments, they don't need the scopes, as they don't
+        # interact with normal variables
         scopes.insert(0, ast.FuncRuntimeScope({}))
 
-        func = self.find_in_scopes(func_call.func_name, scopes)  # type: ast.Func
+        func = self.find_in_scopes(func_call.func_name.get_qualified_name(), scopes)  # type: ast.Func
+
+        new_scope_variables = self.get_function_call_args(
+            func, func_call, scopes)
+
+        # This is not necessary for native functions atm
+        scopes[0].update(new_scope_variables)
+
+        if isinstance(func, ast.NativeFunction):
+            result = self.call_native_func(func, new_scope_variables)
+        else:
+            result = self.run(func.body, scopes=scopes)
+
+        # Don't forget to destroy the created scope!
+        scopes.pop(0)
+
+        return result
+
+    def get_function_call_args(self, func, func_call, scopes):
+        """Returns a dict, containing {name: object} values. The names
+        are the function's formal parameters, and the values are their runtime
+        values
+
+        :param ast.FuncCreation|ast.NativeFunction func:
+        :param ast.FuncCall func_call:
+        :param list[ast.AbstractRuntimeScope] scopes:
+        :return:
+        """
 
         params = func.get_params_and_types()
-
         # flatten function arguments
         flat_arguments = []
         for expression in func_call.args.arg_list if func_call.args else []:
@@ -221,29 +291,30 @@ class Runner:
                     flat_arguments.append(child_expr)
             else:
                 flat_arguments.append(expression.child)
-
         # set in the new function scope the arguments as variables
+        new_scope_variables = {}
         for (pname, ptype), arg_abstrat_value in zip(params, flat_arguments):
             arg_value = self.run(arg_abstrat_value, scopes)
 
             # TODO -> we don't check for types here, and we shouldn't
             #   What we should do is check types at parse time
-            scopes[0][pname] = [arg_value, 'type-not-set-and-we-dont-need-to-set-it-yet']
+            # scopes[0][pname] = [arg_value,
+            # 'type-not-set-and-we-dont-need-to-set-it-yet']
+            new_scope_variables[pname] = [
+                arg_value, 'type-not-set-and-we-dont-need-to-set-it-yet']
 
-        result = self.run(func.body, scopes=scopes)
-
-        # Don't forget to destroy the created scope!
-        scopes.pop(0)
-
-        return result
+        return new_scope_variables
 
     def declare_in_scopes(self, key, type_, scopes):
+        """
+        :param str key:
+        :param ast.Type type_:
+        :param list[ast.AbstractRuntimeScope] scopes:
+        :return:
+        """
         # TODO - refactor declare-in-scopes, find-in-scopes and set-in-scopes
         #  These methods should be placed in the AbstractRuntimeScope class
         # Can only declare in the current scope
-        scopes[0][key] = [ast.ValueNotSet, type_]
+        usable_key = key
 
-    def can_assign_in_scopes(self, key, scopes):
-        pass
-
-
+        scopes[0][usable_key] = [ast.ValueNotSet, type_]

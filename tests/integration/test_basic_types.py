@@ -31,7 +31,7 @@ def test_parse_string():
         'y',
         'x := "asdf"',
         'x',
-        '"\\\"asdf"',  # '"asdf' would be the python equivalent string
+        r'"\"asdf"',  # '"asdf' would be the python equivalent string
         '"a s d f"',
         '"asd\'f"',
         r'"a\nb"',
@@ -40,7 +40,7 @@ def test_parse_string():
     main(io)
 
     assert not io.stderr, io.format_stderr_for_debugging()
-    assert io.stdout == ['"qwer"', '"asdf"', '"\\"asdf"', '"a s d f"', '"asd\'f"', r'"a\nb"']
+    assert io.stdout == ['"qwer"', '"asdf"', r'"\"asdf"', '"a s d f"', '"asd\'f"', r'"a\nb"']
 
 
 def test_string_operators():

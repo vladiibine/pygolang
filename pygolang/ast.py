@@ -137,17 +137,7 @@ class FuncCreation(TypedValue):
 
         # Create a signature for this function type, based on the types of its
         # input params, and its returned type
-        return Type(
-            f"func ({', '.join(str(e) for e in param_types)}) {', '.join(str(e) for e in flat_return_type)}",
-            rtype=flat_return_type[0] if len(flat_return_type) == 1 else flat_return_type or None
-        )
-
-    def get_return_type(self, func):
-        """
-        :param FuncCreation func:
-        :return:
-        """
-        return self.return_type.rtype
+        return Type.create_func_type(param_types, flat_return_type)
 
 
 class FuncParams:
@@ -171,11 +161,21 @@ class FuncArguments:
 
 
 class Name:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, components):
+        """
+
+        :param list[str] components: The components of the qualified name
+            Eg.: ['fmt', 'Println']
+            For simple names found in the package's scope, a `Name` will
+            contain just 1 component, eg.: ['myFunc']
+        """
+        self.components = components
+
+    def get_qualified_name(self):
+        return '.'.join(str(c) for c in self.components)
 
     def __repr__(self):
-        return f"<Name: '{self.value}'>"
+        return f"<Name: '{self.get_qualified_name()}'>"
 
 
 class Expression:
@@ -209,7 +209,7 @@ class Expression:
             
         """
         if isinstance(child, Name):
-            return type_scope.get_variable_type(child.value)
+            return type_scope.get_variable_type(child.get_qualified_name())
 
         elif isinstance(child, TypedValue):
             return child.type
@@ -350,7 +350,7 @@ class Assignment:
     def __init__(self, name, value, type_scope):
         """
 
-        :param str name:
+        :param list[str] name:
         :param TypedValue value:
         :param TypeScope type_scope:
         """
@@ -365,7 +365,7 @@ class Assignment:
         # )
 
     def validate_types(self):
-        target_type = self.type_scope.get_variable_type(self.name)
+        target_type = self.type_scope.get_variable_type(self.name[0])
         type_to_assign = self.value.type
 
         if not target_type.is_assignable_from(type_to_assign):
@@ -373,8 +373,6 @@ class Assignment:
                 f"Can't assign type ({type_to_assign}) to variable "
                 f"({self.name}) of type ({target_type})"
             )
-        # if self.value.type.is_assignable_from()
-        # pass
 
 
 class Statement:
@@ -399,6 +397,9 @@ class Return:
 
 class AbstractRuntimeScope:
     def __init__(self, scope_dict):
+        """
+        :param dict[str,object] scope_dict:
+        """
         self._scope_dict = scope_dict
 
     def __getitem__(self, item):
@@ -412,6 +413,13 @@ class AbstractRuntimeScope:
 
     def __contains__(self, item):
         return item in self._scope_dict
+
+    def update(self, new_items_dict):
+        """
+        :param dict[str|object] new_items_dict:
+        :return:
+        """
+        self._scope_dict.update(new_items_dict)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._scope_dict})"
@@ -478,9 +486,21 @@ class Type:
     def __hash__(self):
         return hash(self.repr)
 
+    @classmethod
+    def create_func_type(cls, param_types, flat_return_type, func_marker='func'):
+        """
+        :param list[Type] param_types:
+        :param list[Type]|Type flat_return_type:
+        :param str func_marker: Useful for distinguishing user-functions from native functions
+        :return:
+        """
+        return cls(
+            f"func ({', '.join(str(e) for e in param_types)}) {', '.join(str(e) for e in flat_return_type)}",
+            rtype=flat_return_type[0] if len(flat_return_type) == 1 else flat_return_type or None
+        )
+
 
 BoolType = Type("bool")
-FuncType = Type("func")  # This needs to be deprecated/removed
 IntType = Type("int")
 StringType = Type("string")
 
@@ -594,12 +614,19 @@ class TypeScope:
         self.scope[name] = type
 
     def get_variable_type(self, name):
+        """
+        :param str|list[str] name:
+        :return:
+        """
+        # TODO - allow 'name' to be only a string.
+        #  The Assignment needs it to be a list, for some probably wrong reason
+        usable_name = name
         tscope = self
 
         # beware of cycles!
         while tscope:
-            if name in tscope.scope:
-                return tscope.scope[name]
+            if usable_name in tscope.scope:
+                return tscope.scope[usable_name]
             tscope = tscope.parent
 
 
@@ -682,3 +709,34 @@ class String(TypedValue, OperatorDelegatorMixin):
     def to_pygo_repr(self):
         repr_value = '"{}"'.format(self.value)
         return repr_value
+
+
+class NativeFunction(TypedValue):
+    _params_and_types = []
+    _rtype = []
+
+    def __init__(self):
+        super(NativeFunction, self).__init__(
+            None,
+            Type.create_func_type(
+                [e[1] for e in self._params_and_types],
+                self._rtype,
+                func_marker='nativefunc'
+            )
+        )
+
+    def call(self, io, arguments):
+        """
+        :param pygolang.io_callback.IO io:
+        :param dict[name,object] arguments:
+        :return:
+        """
+        raise NotImplementedError
+
+    def get_params_and_types(self):
+        return self._params_and_types
+
+
+class Import:
+    def __init__(self, import_str):
+        self.import_str = import_str

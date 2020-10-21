@@ -24,6 +24,7 @@ class PyGoLexer:
     t_LBRACKET = r'\['
     t_RBRACKET = r'\]'
     t_COMMA = r','
+    t_DOT = r'\.'
 
     # Boolean operators
     t_GREATER = '>'

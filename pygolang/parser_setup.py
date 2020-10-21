@@ -53,22 +53,32 @@ class PyGoParser:
         """expression : STRING"""
         t[0] = ast.String(t[1])
 
-    def p_expression_func_call(self, t):
-        """expression : NAME LPAREN args_list RPAREN"""
+    def p_expression_func_call_1(self, t):
+        """expression : name LPAREN args_list RPAREN"""
         current_scope = self.type_scope_stack.get_current_scope()
-        func_return_type = current_scope.get_variable_type(t[1])
+        func_return_type = current_scope.get_variable_type(t[1].get_qualified_name())
 
         t[0] = ast.FuncCall(func_name=t[1], args=t[3], type=func_return_type)
 
-    def p_expression_3(self, t):
-        """expression : NAME LPAREN RPAREN"""
+    def p_expression_func_call_2(self, t):
+        """expression : name LPAREN RPAREN"""
         current_scope = self.type_scope_stack.get_current_scope()
-        func_type = current_scope.get_variable_type(t[1])  # type: ast.Type
+        func_type = current_scope.get_variable_type(t[1].get_qualified_name())  # type: ast.Type
 
         t[0] = ast.FuncCall(
             func_name=t[1], args=ast.FuncArguments([]),
             type=func_type.rtype
         )
+
+    def p_name(self, t):
+        """name : NAME
+                | name DOT name
+        """
+        if len(t.slice) == 2:
+            t[0] = ast.Name([t[1]])
+
+        elif len(t.slice) == 4:
+            t[0] = ast.Name(t[1].components + t[3].components)
 
     def p_expression_4(self, t):
         """expression : TRUE
@@ -138,8 +148,9 @@ class PyGoParser:
                 f"The type specified is not implemented: {t.slice[1].type}")
 
     def p_assignment_statement(self, t):
-        """assignment_statement : NAME EQUALS expression"""
-        t[0] = ast.Assignment(t[1], t[3], type_scope=self.type_scope_stack.get_current_scope())
+        """assignment_statement : name EQUALS expression"""
+        t[0] = ast.Assignment(
+            t[1].components, t[3], type_scope=self.type_scope_stack.get_current_scope())
         # self.program_state[t[1]] = t[3]
 
     def p_expression_statement(self, t):
@@ -227,10 +238,9 @@ class PyGoParser:
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)
 
-    def p_go_statement(self, t):
-        """import_statement : IMPORT DOUBLEQUOTE NAME DOUBLEQUOTE """
-        # TODO -> nope, this is wrong, as it would match `"  fmt  "`
-        #  we must implement strings before we implement imports
+    def p_import_statement(self, t):
+        """import_statement : IMPORT STRING """
+        t[0] = ast.Import(t[2])
 
     def p_conditional_statement_1(self, t):
         """conditional_statement : IF expression new_scope_start block new_scope_end"""
@@ -344,7 +354,7 @@ class PyGoParser:
     #         t[0] = 0
 
     def p_expression_name(self, t):
-        """expression : NAME"""
+        """expression : name"""
         # t.slice[0].value = self.program_state[t.slice[1].value]
 
         """
@@ -377,12 +387,10 @@ class PyGoParser:
         """
 
         if len(t.slice) == 2:
-            if isinstance(t.slice[1], LexToken):
-                if t.slice[1].type == 'NAME':
-                    expression_node = ast.Name(t.slice[1].value)
-
+            if isinstance(t.slice[1], yacc.YaccSymbol):
+                if t.slice[1].type == 'name':
                     t.slice[0].value = ast.Expression(
-                        expression_node,
+                        t.slice[1].value,
                         self.type_scope_stack.get_current_scope()
                     )
 

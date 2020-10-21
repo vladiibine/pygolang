@@ -50,6 +50,7 @@ class SYNTAX(enum.Enum):
     SINGLEQUOTE = 'SINGLEQUOTE'  # '
 
     COMMA = 'COMMA'  # ,
+    DOT = 'DOT'  # .
 
 
 keywords_tuple = tuple(e.name for e in KEYWORDS)
