@@ -1,11 +1,12 @@
 import importlib
 
 from pygolang import ast
+from pygolang.ast_runner.importer import Importer
 from pygolang.errors import PyGoGrammarError
 
 
 class Runner:
-    def __init__(self, side_effects, state):
+    def __init__(self, side_effects, state, importer=None):
         """
 
         :param side_effects:
@@ -13,11 +14,12 @@ class Runner:
         state
         """
         self.side_effects = side_effects
+        self.importer = importer or Importer(side_effects)
         # TODO -> access to this needs to be replaced with a call to a
         #  method which searches for variables in a list of scopes
         #  AND if it writes something, it writes in the first scope it gets
         if isinstance(state, dict):
-            self.state = ast.ModuleRuntimeScope(state)
+            self.state = ast.PackageRuntimeScope(state)
 
         elif isinstance(state, ast.AbstractRuntimeScope):
             self.state = state
@@ -33,7 +35,10 @@ class Runner:
             value = self.run(code.value, scopes)  # Root
 
         elif isinstance(code, ast.InterpreterStart):
-            value = self.run(code.value, scopes)  # InterpreterStart
+            for stmt in code.statements:
+                value = self.run(stmt, scopes)
+
+            # value = self.run(code.statements, scopes)  # InterpreterStart
             if value is not None:
                 self.side_effects.to_stdout(value.to_pygo_repr())
 
@@ -47,21 +52,29 @@ class Runner:
             # 3. get a list of (key, value) pairs
             # 4. add the keys/values to the current namespace
 
-            try:
-                module = importlib.import_module(f'.stdlib.{code.import_str}', 'pygolang')
-            except ImportError:
-                self.side_effects.to_stderr(
-                    f'cannot find package "{code.import_str}" in any of'
-                )
+            # Try to import from the builtin modules
+            new_variables = []
+            new_variables.extend(
+                self.importer.import_from_stdlib(code.import_str))
+            if new_variables:
+                for qualified_name, obj_type, obj in new_variables:
+                    self.declare_in_scopes(qualified_name, obj_type, scopes)
+                    self.set_in_scopes(qualified_name, obj, scopes)
                 return
 
-            for name in dir(module):
-                obj = getattr(module, name)
-                if isinstance(obj, ast.NativeFunction):
-                    qualified_name = '.'.join([code.import_str, name])
-                    self.declare_in_scopes(
-                        qualified_name, obj.type, scopes)
+            new_variables.extend(
+                self.importer.import_from_modules(code.import_str))
+            if new_variables:
+                # yes, the code below is duplicated. Is it really worth
+                # creating a method? don't think so
+                for qualified_name, obj_type, obj in new_variables:
+                    self.declare_in_scopes(qualified_name, obj_type, scopes)
                     self.set_in_scopes(qualified_name, obj, scopes)
+                return
+
+            self.side_effects.to_stderr(
+                f'cannot find package "{code.import_str}" in any of'
+            )
 
         elif isinstance(code, ast.Block):
             for stmt in code.statements:
@@ -163,6 +176,30 @@ class Runner:
 
         return value
 
+    # TODO - move this to another class
+    @staticmethod
+    def import_from_stdlib(import_stmt):
+        """Import names from the standard library
+        (functionality re-implemented in python)
+
+        :param pygolang.ast.Import import_stmt:
+        """
+        new_variables = []
+        try:
+            module = importlib.import_module(
+                f'.stdlib.{import_stmt.import_str}', 'pygolang'
+            )
+
+            for name in dir(module):
+                obj = getattr(module, name)
+                if isinstance(obj, ast.NativeFunction):
+                    qualified_name = '.'.join([import_stmt.import_str, name])
+                    new_variables.append((qualified_name, obj.type, obj))
+        except ImportError:
+            pass
+
+        return new_variables
+
     def set_in_scopes(self, name, value, scopes):
         """
 
@@ -237,7 +274,7 @@ class Runner:
         """
         :param ast.NativeFunction func:
         :param dict[str,object] scope:
-        :return: 
+        :return:
         """
         result = func.call(self.side_effects, scope)
         return result

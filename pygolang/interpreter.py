@@ -3,8 +3,8 @@
 # these names are used via reflection, don't change them,
 # and don't change their order
 # from ply import yacc, lex
-
-from pygolang import parser_setup, ast_runner
+from pygolang.ast_runner import runner as pygo_runner
+from pygolang import parser_setup
 from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
     PyGoConsoleLogoffError
 from pygolang.side_effects import SideEffects
@@ -24,14 +24,7 @@ def main(side_effects=SideEffects(), program_state=None):
     # pygo_lexer = lexer_setup.PyGoLexer(io)
     lexer = lexer_setup.PyGoLexer(side_effects)
     parser = parser_setup.PyGoParser(side_effects, program_state)
-    runner = ast_runner.Runner(side_effects, program_state)
-
-    # try:
-    #     import pydevd; pydevd.settrace('localhost', port=5678)
-    # except ImportError:
-    #     print("\n\n\n")
-    #     print(">>>VWH>>>: the pydevd module is not installed")
-    #     print("\n\n\n\n\n")
+    runner = pygo_runner.Runner(side_effects, program_state)
 
     while True:
         try:

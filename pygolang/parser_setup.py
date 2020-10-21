@@ -45,8 +45,22 @@ class PyGoParser:
         return self.parser.parse(*a, **kw)
 
     def p_interpreter_start(self, t):
-        """interpreter_start : statement"""
-        t[0] = ast.Root(ast.InterpreterStart(t[1]))
+        """interpreter_start : statement
+                            | interpreter_start interpreter_start
+        """
+        if len(t.slice) == 2:
+            t[0] = ast.Root(ast.InterpreterStart([t[1]]))
+        else:
+            statements = []
+            for interpreter_start_stmt in [t[1].value, t[2].value]:
+                for stmt in interpreter_start_stmt.statements:
+                    statements.append(stmt)
+
+            # the list comprenehsion below should work BUT since I'm a human
+            # being, I'll just let the 2 for-loops above to the same thing
+            # statements = [stmt for interpreter_starts in [t[1].value, t[2].value] for stmt in interpreter_starts.statements]
+
+            t[0] = ast.Root(ast.InterpreterStart(statements))
 
     def p_expression_int(self, t):
         """expression : INT"""

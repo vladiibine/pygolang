@@ -72,3 +72,18 @@ def test_operators_and_expressions():
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['4']
 
+
+def test_parses_multiple_operations_in_one_gulp():
+    side_effects = FakeSideEffects([
+        """
+        var x int = 2
+        x = 4
+        import "fmt"
+        fmt.Println(x)
+        """
+    ])
+    scope = {}
+    main(side_effects, scope)
+
+    assert not side_effects.stderr, side_effects.format_stderr_for_debugging()
+    assert side_effects.stdout == ['4']

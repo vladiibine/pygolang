@@ -381,8 +381,14 @@ class Statement:
 
 
 class InterpreterStart:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, statements):
+        """
+
+        :param list statements: List of statements. A statement doesn't
+            necessarily mean ast.Statement, but any kind of ast.* object
+            which is processable by ast.Runner.run
+        """
+        self.statements = statements
 
 
 class Root:
@@ -431,7 +437,7 @@ class FuncRuntimeScope(AbstractRuntimeScope):
     pass
 
 
-class ModuleRuntimeScope(AbstractRuntimeScope):
+class PackageRuntimeScope(AbstractRuntimeScope):
     pass
 
 
@@ -738,5 +744,35 @@ class NativeFunction(TypedValue):
 
 
 class Import:
+    """
+    Importing rules
+
+    1. File names don't matter
+    2. Package names matter. Package names should be the same as folder names
+        where the files are placed
+    3. the go.mod file should specify `module <NAME>`. The name's format
+        doesn't matter
+    4. When importing, the `import "module_name/folder1/folder2/folder3"`
+        here is built like this
+    4.1. import_path = module_name/folder1/folder2/folder3
+    4.2. this requires that a go.mod file is present in the current folder
+        (possibly other other locations, defined by $GOROOT and $GOPATH, more
+        on that later)
+    4.3. The `go.mod` file should have this line in it `module module_name`
+    4.4. Then, in the current folder (and possibly other locations, as hinted
+            at 4.2) the folder folder1/folder2/folder3 must exist (with all its
+            parents)
+    4.5. In each of those folders, all the .go files should contain the
+        package statement. In the `folder1` all .go files contain the statement
+        `package folder1`. In folder `folder2`, all .go files contain the stmt
+        `package folder2` ...and so on.
+    4.6. The import `import "module_name/folder1/folder2/folder3` will generate
+        in the local namespace the name `folder3`, which can be used to access
+        objects exported by ALL the files in that folder. By "Exported" we mean
+        those names with capital letter. The lowercase names are private
+    4.7. In case it was not specific enough: All files in a folder will be
+        evaluated. All the uppercase variables in all of them will be available
+        via imports
+    """
     def __init__(self, import_str):
         self.import_str = import_str

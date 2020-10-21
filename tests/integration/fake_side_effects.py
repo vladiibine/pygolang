@@ -3,16 +3,19 @@ from pygolang.errors import StopPyGoLangInterpreterError
 
 
 class FakeSideEffects(SideEffects):
-    def __init__(self, stdin_as_str_list):
+    def __init__(self, stdin_as_str_list, fake_files=()):
         """
         :param list[str] stdin_as_str_list: list(or iterable) of strings, to
             simulate the lines from stdin
+        :param list[dict] fake_files: Dict containing the 'path' and 'content'
+            keys. Will be used instead of real files
         """
         self.stdin = stdin_as_str_list
         self.stdout = []
         self.stderr = []
         self.sleep_list = []  # for recording time.Sleep calls
         self.input_generator = None
+        self.fake_files = fake_files
 
     def from_stdin(self):
         def iterate_over_stdin():
