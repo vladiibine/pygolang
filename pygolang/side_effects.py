@@ -1,4 +1,5 @@
 import sys
+import time
 
 
 class SideEffects:
@@ -19,6 +20,9 @@ class SideEffects:
 
     def from_stdin(self):
         return self.stdin.readline().lstrip('\n')
+
+    def sleep(self, interval):
+        time.sleep(interval)
 
     def interpreter_prompt(self):
         self.to_stdout("pygo> ")

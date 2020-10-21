@@ -11,6 +11,7 @@ class FakeSideEffects(SideEffects):
         self.stdin = stdin_as_str_list
         self.stdout = []
         self.stderr = []
+        self.sleep_list = []  # for recording time.Sleep calls
         self.input_generator = None
 
     def from_stdin(self):
@@ -30,6 +31,9 @@ class FakeSideEffects(SideEffects):
 
     def to_stderr(self, stuff):
         self.stderr.append(stuff)
+
+    def sleep(self, interval):
+        self.sleep_list.append(interval)
 
     def interpreter_prompt(self):
         pass

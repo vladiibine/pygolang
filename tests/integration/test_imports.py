@@ -31,13 +31,18 @@ def test_fmt_println():
 
 
 def test_time_sleep():
-    io = FakeSideEffects([
+    side_effects = FakeSideEffects([
         'import "time"',
         """
         func f(x int) int {
             time.Sleep(x)
         }
-        """
+        """,
+        'f(2)',
     ])
 
-    raise NotImplementedError
+    main(side_effects)
+
+    assert not side_effects.stderr, side_effects.format_stderr_for_debugging()
+    assert side_effects.sleep_list == [2]
+    assert not side_effects.stdout
