@@ -12,15 +12,15 @@ class _PrintlnClass(ast.NativeFunction):
 
     type = ast.Type.create_func_type([p[1] for p in _params_and_types], _rtype)
 
-    def call(self, io, arguments):
+    def call(self, side_effects, arguments):
         """ Mimics go's fmt.Println()
 
-        :param pygolang.io_callback.IO io:
+        :param pygolang.side_effects.SideEffects side_effects:
         :param dict[str,list[object,]] arguments:
         """
         f = python_io.StringIO()
         print(arguments['a'][0].to_pygo_repr(), end='', file=f)
-        io.to_stdout(f.getvalue())
+        side_effects.to_stdout(f.getvalue())
 
 
 Println = _PrintlnClass()

@@ -725,9 +725,9 @@ class NativeFunction(TypedValue):
             )
         )
 
-    def call(self, io, arguments):
+    def call(self, side_effects, arguments):
         """
-        :param pygolang.io_callback.IO io:
+        :param pygolang.side_effects.SideEffects side_effects:
         :param dict[name,object] arguments:
         :return:
         """

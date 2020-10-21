@@ -44,7 +44,7 @@ class PyGoLexer:
     def __init__(self, side_effects, type_scope_stack=None):
         """
 
-        :param pygolang.io_callback.IO side_effects: Need this parameter
+        :param pygolang.side_effects.SideEffects side_effects: Need this parameter
             to signal the creation of a new lexical scope when a "{" is reached
             Q: Do all situations where a "{" is read mark the beginning of
                 a new lexical scope?
