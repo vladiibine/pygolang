@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_int_arithmetic_operators():
-    io = FakeIO([
+    io = FakeSideEffects([
         '1+1',
         '1-1',
         '2*3',
@@ -23,7 +23,7 @@ def test_int_arithmetic_operators():
 
 
 def test_walrus_plus():
-    io = FakeIO(['x := 1'])
+    io = FakeSideEffects(['x := 1'])
 
     state = {}
 
@@ -35,7 +35,7 @@ def test_walrus_plus():
 
 
 def test_int_boolean_operators():
-    io = FakeIO([
+    io = FakeSideEffects([
         '1 > 0',
         '1 < 0',
 
@@ -61,7 +61,7 @@ def test_int_boolean_operators():
 
 
 def test_not_operator_fails_like_in_golang():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if ! 1 == 2 {x = 2}',
         'x',

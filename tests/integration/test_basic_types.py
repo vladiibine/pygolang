@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_parse_bool_literal():
-    io = FakeIO(["true", 'false'])
+    io = FakeSideEffects(["true", 'false'])
 
     main(io)
 
@@ -14,7 +14,7 @@ def test_parse_bool_literal():
 
 
 def test_parse_bool_explicit():
-    io = FakeIO(["var x bool = true"])
+    io = FakeSideEffects(["var x bool = true"])
 
     scope = {}
     main(io, scope)
@@ -26,7 +26,7 @@ def test_parse_bool_explicit():
 
 
 def test_parse_string():
-    io = FakeIO([
+    io = FakeSideEffects([
         'var y string = "qwer"',
         'y',
         'x := "asdf"',
@@ -44,7 +44,7 @@ def test_parse_string():
 
 
 def test_string_operators():
-    io = FakeIO([
+    io = FakeSideEffects([
         '"a" + "b"',
         r'"ab\""',
 

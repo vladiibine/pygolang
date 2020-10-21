@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_can_assign_bool_to_declared_variable():
-    io = FakeIO(["var x bool", "x = true"])
+    io = FakeSideEffects(["var x bool", "x = true"])
     state = {}
 
     main(io, state)

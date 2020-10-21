@@ -5,13 +5,14 @@ from pygolang.errors import PyGoGrammarError
 
 
 class Runner:
-    def __init__(self, io, state):
+    def __init__(self, side_effects, state):
         """
 
-        :param io:
-        :param dict|ast.AbstractRuntimeScope state: the program's starting state
+        :param side_effects:
+        :param dict|ast.AbstractRuntimeScope state: the program's starting
+        state
         """
-        self.io = io
+        self.side_effects = side_effects
         # TODO -> access to this needs to be replaced with a call to a
         #  method which searches for variables in a list of scopes
         #  AND if it writes something, it writes in the first scope it gets
@@ -34,7 +35,7 @@ class Runner:
         elif isinstance(code, ast.InterpreterStart):
             value = self.run(code.value, scopes)  # InterpreterStart
             if value is not None:
-                self.io.to_stdout(value.to_pygo_repr())
+                self.side_effects.to_stdout(value.to_pygo_repr())
 
         elif isinstance(code, ast.Import):
             # 0. TODO -> Determine the import path. Will be useful for when
@@ -49,7 +50,7 @@ class Runner:
             try:
                 module = importlib.import_module(f'.stdlib.{code.import_str}', 'pygolang')
             except ImportError:
-                self.io.to_stderr(
+                self.side_effects.to_stderr(
                     f'cannot find package "{code.import_str}" in any of'
                 )
                 return
@@ -238,7 +239,7 @@ class Runner:
         :param dict[str,object] scope:
         :return: 
         """
-        result = func.call(self.io, scope)
+        result = func.call(self.side_effects, scope)
         return result
 
     def call_func(self, func_call, scopes):

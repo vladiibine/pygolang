@@ -1,7 +1,7 @@
 import sys
 
 
-class IO:
+class SideEffects:
     def __init__(self, stdout=None, stderr=None, stdin=None):
         self.stdout = stdout or sys.stdout
         self.stderr = stderr or sys.stderr

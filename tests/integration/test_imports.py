@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 from pygolang.stdlib import fmt
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_import_fmt():
-    io = FakeIO([
+    io = FakeSideEffects([
         'import "fmt"',
     ])
 
@@ -19,7 +19,7 @@ def test_import_fmt():
 
 
 def test_fmt_println():
-    io = FakeIO([
+    io = FakeSideEffects([
         'import "fmt"',
         'fmt.Println(1)',
     ])
@@ -29,3 +29,15 @@ def test_fmt_println():
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['1']
 
+
+def test_time_sleep():
+    io = FakeSideEffects([
+        'import "time"',
+        """
+        func f(x int) int {
+            time.Sleep(x)
+        }
+        """
+    ])
+
+    raise NotImplementedError

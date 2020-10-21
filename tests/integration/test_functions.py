@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_basic_syntax():
-    io = FakeIO([
+    io = FakeSideEffects([
         # "name1 = 3",
         # "name2 = 4",
         """
@@ -32,7 +32,7 @@ func asdf(name1 int)int{
 
 
 def test_calling_function_containing_only_a_return_statement():
-    io = FakeIO([
+    io = FakeSideEffects([
         """func asdf( name1 int)int{return 133}""",
         """var x int = asdf(3)"""
     ])
@@ -45,7 +45,7 @@ def test_calling_function_containing_only_a_return_statement():
 
 
 def test_calling_function_that_returns_an_argument():
-    io = FakeIO([
+    io = FakeSideEffects([
         """func asdf(name1 int)int{return name1}""",
         """var x int = asdf(3)"""
     ])
@@ -58,7 +58,7 @@ def test_calling_function_that_returns_an_argument():
 
 
 def test_calling_function_without_params():
-    io = FakeIO([
+    io = FakeSideEffects([
         "func x()int{return 2}",
         "x()"
     ])
@@ -70,7 +70,7 @@ def test_calling_function_without_params():
 
 
 def test_calling_function_that_sums_its_arguments():
-    io = FakeIO([
+    io = FakeSideEffects([
         "func add(x int, y int) int {return x + y }",
         "add(1,2)"
     ])
@@ -81,7 +81,7 @@ def test_calling_function_that_sums_its_arguments():
 
 
 def test_function_that_uses_global_scope_and_arguments_to_produce_result_qm7():
-    io = FakeIO([
+    io = FakeSideEffects([
         "var z int = 4",
         "func add(x int, y int) int {return x + y + z}",
         "add(1, 2)",

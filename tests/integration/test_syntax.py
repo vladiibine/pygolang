@@ -1,9 +1,9 @@
 from pygolang.interpreter import main
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_grouping_expressions_in_conditionals():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x:=1',
         'if (!(1 == 2) && !(1 != 1)){x = 2}',
         'x',
@@ -16,7 +16,7 @@ def test_grouping_expressions_in_conditionals():
 
 
 def test_assignment_from_groupings():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x:=(((1)))',
         'x',
     ])

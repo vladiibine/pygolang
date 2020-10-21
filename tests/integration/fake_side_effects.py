@@ -1,8 +1,8 @@
-from pygolang.io_callback import IO
+from pygolang.side_effects import SideEffects
 from pygolang.errors import StopPyGoLangInterpreterError
 
 
-class FakeIO(IO):
+class FakeSideEffects(SideEffects):
     def __init__(self, stdin_as_str_list):
         """
         :param list[str] stdin_as_str_list: list(or iterable) of strings, to
@@ -12,7 +12,6 @@ class FakeIO(IO):
         self.stdout = []
         self.stderr = []
         self.input_generator = None
-        # super().__init__()
 
     def from_stdin(self):
         def iterate_over_stdin():

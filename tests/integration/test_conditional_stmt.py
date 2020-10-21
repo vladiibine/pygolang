@@ -1,11 +1,11 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_simple_conditional():
-    io = FakeIO([
+    io = FakeSideEffects([
         'var x int = 0',
         'if true { x = 2 }',
         'x'
@@ -18,7 +18,7 @@ def test_simple_conditional():
 
 
 def test_simple_if_conditional_twice():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'x',
         'if true {x = 2}',
@@ -36,7 +36,7 @@ def test_simple_if_conditional_twice():
 
 
 def test_if_with_expression_from_name():
-    io = FakeIO([
+    io = FakeSideEffects([
         't := true',
         'f := false',
         'x := 1',
@@ -54,7 +54,7 @@ def test_if_with_expression_from_name():
 
 
 def test_if_with_expression_from_func_call():
-    io = FakeIO([
+    io = FakeSideEffects([
         'func t()bool{return true}',
         'func f()bool{return false}',
         'x := 0',
@@ -72,7 +72,7 @@ def test_if_with_expression_from_func_call():
 
 
 def test_chained_if_statements_no_final_else_with_true_at_the_end():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if false {x = 2} else if true { x = 3}',
         'x',
@@ -85,7 +85,7 @@ def test_chained_if_statements_no_final_else_with_true_at_the_end():
 
 
 def test_chained_if_statements_with_true_in_the_middle_no_final_else():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if false {x = 2} else if true { x = 3} else if true { x = 4}',
         'x',
@@ -98,7 +98,7 @@ def test_chained_if_statements_with_true_in_the_middle_no_final_else():
 
 
 def test_chained_if_statements_with_true_in_the_middle_with_final_else():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if false {x = 2} else if true { x = 3} else if true { x = 4} else {x = 5}',
         'x',
@@ -111,7 +111,7 @@ def test_chained_if_statements_with_true_in_the_middle_with_final_else():
 
 
 def test_else_block_simple_if_statement():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if false {x = 2} else {x = 3}',
         'x',
@@ -124,7 +124,7 @@ def test_else_block_simple_if_statement():
 
 
 def test_chained_if_with_final_else_fallback_block_executing():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if false {x = 2} else if false { x = 3} else if false { x = 4} else {x = 5}',
         'x',
@@ -137,7 +137,7 @@ def test_chained_if_with_final_else_fallback_block_executing():
 
 
 def test_no_block_is_executed_except_for_the_one_with_an_expression_evaluating_to_true():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'y := 1',
         'z := 1',
@@ -154,7 +154,7 @@ def test_no_block_is_executed_except_for_the_one_with_an_expression_evaluating_t
 
 
 def test_conditionals_work_with_boolean_expressions():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if x == 1 {x=2}',
         'x',
@@ -167,7 +167,7 @@ def test_conditionals_work_with_boolean_expressions():
 
 
 def test_conditionals_work_with_boolean_operators():
-    io = FakeIO([
+    io = FakeSideEffects([
         'x := 1',
         'if x == 1 && x != 2 {x = 2}',
         'x',

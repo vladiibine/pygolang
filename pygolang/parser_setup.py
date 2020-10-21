@@ -30,8 +30,12 @@ class PyGoParser:
 
     start = 'interpreter_start'
 
-    def __init__(self, io, state):
-        self.io_callback = io
+    def __init__(self, side_effects, state):
+        """
+        :param pygolang.side_effects.SideEffects side_effects:
+        :param state:
+        """
+        self.side_effects = side_effects
         self.program_state = state
 
         self.type_scope_stack = ast.TypeScopeStack()
@@ -396,5 +400,5 @@ class PyGoParser:
 
     def p_error(self, t):
         if t and hasattr(t, 'value'):
-            self.io_callback.to_stderr("pygo: Syntax error at '%s'" % t.value)
+            self.side_effects.to_stderr("pygo: Syntax error at '%s'" % t.value)
         raise PyGoConsoleLogoffError

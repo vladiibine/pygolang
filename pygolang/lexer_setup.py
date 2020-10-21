@@ -41,10 +41,10 @@ class PyGoLexer:
     # Ignored characters
     t_ignore = " \t"
 
-    def __init__(self, io_callback, type_scope_stack=None):
+    def __init__(self, side_effects, type_scope_stack=None):
         """
 
-        :param pygolang.io_callback.IO io_callback: Need this parameter
+        :param pygolang.io_callback.IO side_effects: Need this parameter
             to signal the creation of a new lexical scope when a "{" is reached
             Q: Do all situations where a "{" is read mark the beginning of
                 a new lexical scope?
@@ -54,7 +54,7 @@ class PyGoLexer:
                 ..Ok, so I'll define some special parser rules for this
         :param pygolang.ast.TypeScopeStack type_scope_stack:
         """
-        self.io_callback = io_callback
+        self.side_effects = side_effects
         self.lexer = self.build_lexer()
         # self.type_scope_stack = type_scope_stack
 
@@ -79,7 +79,7 @@ class PyGoLexer:
         try:
             t.value = int(t.value)
         except ValueError:
-            self.io_callback.to_stdout("Integer value too large %d" % t.value)
+            self.side_effects.to_stdout("Integer value too large %d" % t.value)
             t.value = 0
         return t
 
@@ -88,7 +88,7 @@ class PyGoLexer:
         t.lexer.lineno += t.value.count("\n")
 
     def t_error(self, t):
-        self.io_callback.to_stdout("Illegal character '%s'" % t.value[0])
+        self.side_effects.to_stdout("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
 
     def build_lexer(self):

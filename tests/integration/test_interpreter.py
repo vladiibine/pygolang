@@ -1,10 +1,10 @@
 from pygolang import ast
 from pygolang.interpreter import main
-from tests.integration.io_callback_fixture import FakeIO
+from tests.integration.fake_side_effects import FakeSideEffects
 
 
 def test_prints_expressions_to_stdout():
-    io = FakeIO([
+    io = FakeSideEffects([
         """func asdf( name1 int)int{return 133}""",
         """asdf(3)""",
         """15""",
@@ -19,7 +19,7 @@ def test_prints_expressions_to_stdout():
 
 
 def test_assignment_from_variable():
-    io = FakeIO([
+    io = FakeSideEffects([
         """var x int = 1""",
         """var y int = x""",
         """y"""
@@ -38,7 +38,7 @@ def test_assignment_from_variable():
 
 
 def test_interpreter_prints_out_things():
-    io = FakeIO([
+    io = FakeSideEffects([
         "var x int",
         "x=1",
         "x",
@@ -60,7 +60,7 @@ def test_interpreter_prints_out_things():
 
 
 def test_operators_and_expressions():
-    io = FakeIO([
+    io = FakeSideEffects([
         "func f()int{return 2}",
         "f() + 2"
     ])
