@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -29,3 +30,16 @@ class SideEffects:
 
     def newline(self):
         self.to_stdout('\n')
+
+    def get_environ(self, param):
+        return os.environ.get(param)
+
+    def isdir(self, path):
+        return os.path.isdir(path)
+
+    def list_files_in_dir(self, folder):
+        return next(os.walk(folder))[2]
+
+    def read_file(self, filename):
+        with open(filename) as f:
+            return f.read()
