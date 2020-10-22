@@ -1,7 +1,7 @@
 from pygolang import ast
 from pygolang.interpreter import main
 
-from tests.integration.fake_side_effects import FakeSideEffects
+from tests.fake_side_effects import FakeSideEffects
 
 
 def test_simple_conditional():

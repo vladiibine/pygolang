@@ -62,15 +62,23 @@ class Runner:
                     self.set_in_scopes(qualified_name, obj, scopes)
                 return
 
-            new_variables.extend(
-                self.importer.import_from_modules(code.import_str))
-            if new_variables:
-                # yes, the code below is duplicated. Is it really worth
-                # creating a method? don't think so
-                for qualified_name, obj_type, obj in new_variables:
-                    self.declare_in_scopes(qualified_name, obj_type, scopes)
-                    self.set_in_scopes(qualified_name, obj, scopes)
+            found_files = False
+            for source in self.importer.import_from_gopath(code.import_str):
+                found_files = True
+                pass
+
+            if found_files:
                 return
+
+            # new_variables.extend(
+            #     self.importer.import_from_modules(code.import_str))
+            # if new_variables:
+            #     # yes, the code below is duplicated. Is it really worth
+            #     # creating a method? don't think so
+            #     for qualified_name, obj_type, obj in new_variables:
+            #         self.declare_in_scopes(qualified_name, obj_type, scopes)
+            #         self.set_in_scopes(qualified_name, obj, scopes)
+            #     return
 
             self.side_effects.to_stderr(
                 f'cannot find package "{code.import_str}" in any of'
