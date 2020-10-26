@@ -19,7 +19,7 @@ func asdf(name1 int)int{
     main(io, program_state=state)
 
     # A function was just declared. Nothing printed
-    assert not io.stderr
+    assert not io.stderr, io.format_stderr_for_debugging()
     assert not io.stdout
     assert len(state) == 1
     assert 'asdf' in state

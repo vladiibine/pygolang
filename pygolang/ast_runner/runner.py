@@ -32,17 +32,30 @@ class Runner:
         scopes = scopes or [self.state]
 
         if isinstance(code, ast.Root):
-            value = self.run(code.value, scopes)  # Root
+            for s in code.statements:
+                value = self.run(s, scopes)  # Root
 
         elif isinstance(code, ast.InterpreterStart):
             for stmt in code.statements:
                 value = self.run(stmt, scopes)
 
-            # value = self.run(code.statements, scopes)  # InterpreterStart
-            if value is not None:
-                self.side_effects.to_stdout(value.to_pygo_repr())
+                # value = self.run(code.statements, scopes)  # InterpreterStart
+                if value is not None:
+                    self.side_effects.to_stdout(value.to_pygo_repr())
 
-        elif isinstance(code, ast.Import):
+        elif isinstance(code, ast.StdlibImport):
+            pass
+
+        elif isinstance(code, ast.GopathImport):
+            # There used to be code here which had to do with actually parsing
+            # and importing files. That's wrong. Python would do that, but not
+            # golang. In golang, at this point, we'd have a fully parsed
+            # dependency package. This package would expose all variables
+            # it exports.
+            # In the runner, we'd merely make the exported variables reachable
+            # from this module's scope
+            code
+
             # 0. TODO -> Determine the import path. Will be useful for when
             #     importing other packages, and for displaying errors like
             #     go does. Go displays all the paths where it looked for
@@ -53,22 +66,24 @@ class Runner:
             # 4. add the keys/values to the current namespace
 
             # Try to import from the builtin modules
-            new_variables = []
-            new_variables.extend(
-                self.importer.import_from_stdlib(code.import_str))
-            if new_variables:
-                for qualified_name, obj_type, obj in new_variables:
-                    self.declare_in_scopes(qualified_name, obj_type, scopes)
-                    self.set_in_scopes(qualified_name, obj, scopes)
-                return
+            # new_variables = []
+            # new_variables.extend(
+            #     self.importer.import_from_stdlib(code.import_str))
+            # if new_variables:
+            #     for qualified_name, obj_type, obj in new_variables:
+            #         self.declare_in_scopes(qualified_name, obj_type, scopes)
+            #         self.set_in_scopes(qualified_name, obj, scopes)
+            #     return
 
-            found_files = False
-            for source in self.importer.import_from_gopath(code.import_str):
-                found_files = True
-                pass
-
-            if found_files:
-                return
+            # TODO -> imports should not be done at run-time, but previously,
+            #  during or right after parsing
+            # found_files = False
+            # for source in self.importer.import_from_gopath(code.import_str):
+            #     found_files = True
+            #     pass
+            #
+            # if found_files:
+            #     return
 
             # new_variables.extend(
             #     self.importer.import_from_modules(code.import_str))
@@ -80,9 +95,9 @@ class Runner:
             #         self.set_in_scopes(qualified_name, obj, scopes)
             #     return
 
-            self.side_effects.to_stderr(
-                f'cannot find package "{code.import_str}" in any of'
-            )
+            # self.side_effects.to_stderr(
+            #     f'cannot find package "{code.import_str}" in any of'
+            # )
 
         elif isinstance(code, ast.Block):
             for stmt in code.statements:

@@ -87,3 +87,26 @@ def test_parses_multiple_operations_in_one_gulp():
 
     assert not side_effects.stderr, side_effects.format_stderr_for_debugging()
     assert side_effects.stdout == ['4']
+
+
+def test_raises_error_on_missing_semicolon():
+    side_effects = FakeSideEffects([
+        "3 4"
+    ])
+
+    main(side_effects)
+
+    assert side_effects.stderr
+    assert len(side_effects.stderr) == 1
+    assert side_effects.stderr[0] == 'pygo: Syntax error at \'4\''
+
+
+def test_semicolons_work_as_statement_terminators():
+    side_effects = FakeSideEffects([
+        '3; 4;'
+    ])
+
+    main(side_effects)
+
+    assert not side_effects.stderr, side_effects.format_stderr_for_debugging()
+    assert side_effects.stdout == ['3', '4']

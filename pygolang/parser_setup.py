@@ -5,7 +5,7 @@ from ply.lex import LexToken
 from pygolang import ast
 from pygolang.errors import PyGoGrammarError, PyGoConsoleLogoffError
 from . import common_grammar
-from .common_grammar import OPERATORS
+from .common_grammar import OPERATORS, SYNTAX
 
 TYPE_MAP = {
     'BOOL': ast.BoolType,
@@ -30,37 +30,48 @@ class PyGoParser:
 
     start = 'interpreter_start'
 
-    def __init__(self, side_effects, state):
+    def __init__(self, side_effects, state, importer, lexer):
         """
         :param pygolang.side_effects.SideEffects side_effects:
         :param state:
+        :param pygolang.ast_runner.importer.Importer importer:
         """
         self.side_effects = side_effects
         self.program_state = state
+        self.importer = importer
+        self.lexer = lexer
 
         self.type_scope_stack = ast.TypeScopeStack()
         self.parser = yacc.yacc(module=self)
 
     def parse(self, *a, **kw):
-        return self.parser.parse(*a, **kw)
+        return self.parser.parse(*a, **kw, lexer=self.lexer)
 
     def p_interpreter_start(self, t):
         """interpreter_start : statement
-                            | interpreter_start interpreter_start
+                            | interpreter_start SEMICOLON interpreter_start
+                            | interpreter_start NEWLINE interpreter_start
+                            | interpreter_start NEWLINE
+                            | interpreter_start SEMICOLON
         """
-        if len(t.slice) == 2:
-            t[0] = ast.Root(ast.InterpreterStart([t[1]]))
-        else:
+        if len(t.slice) in (2, 3):
+            if isinstance(t[1], ast.Root):
+                t[0] = t[1]
+            else:
+                t[0] = ast.Root([ast.InterpreterStart([t[1]])])
+
+        elif len(t.slice) == 4:
             statements = []
-            for interpreter_start_stmt in [t[1].value, t[2].value]:
+            for interpreter_start_stmt in (t[1].statements + t[3].statements):
                 for stmt in interpreter_start_stmt.statements:
                     statements.append(stmt)
+
 
             # the list comprenehsion below should work BUT since I'm a human
             # being, I'll just let the 2 for-loops above to the same thing
             # statements = [stmt for interpreter_starts in [t[1].value, t[2].value] for stmt in interpreter_starts.statements]
 
-            t[0] = ast.Root(ast.InterpreterStart(statements))
+            t[0] = ast.Root([ast.InterpreterStart(statements)])
 
     def p_expression_int(self, t):
         """expression : INT"""
@@ -169,7 +180,6 @@ class PyGoParser:
         """assignment_statement : name EQUALS expression"""
         t[0] = ast.Assignment(
             t[1].components, t[3], type_scope=self.type_scope_stack.get_current_scope())
-        # self.program_state[t[1]] = t[3]
 
     def p_expression_statement(self, t):
         """expression_statement : expression"""
@@ -256,9 +266,51 @@ class PyGoParser:
         """
         t.slice[0].value = ast.Statement(t.slice[1].value)
 
+    # def p_package_statement(self, t):
+    #     """package_statement : PACKAGE NAME"""
+    #     return ast.NoopPackageStatement(t[2])
+
     def p_import_statement(self, t):
         """import_statement : IMPORT STRING """
-        t[0] = ast.Import(t[2])
+
+        new_variables = self.importer.import_from_stdlib(t[2])
+        if new_variables:
+            t[0] = ast.StdlibImport(t[2], new_variables)
+            return
+
+        file_contents = self.importer.import_from_gopath(t[2])
+        if file_contents:
+
+            # Need to initialize a new scope for the new module
+            # In theory, we could have just done something like below:
+            #   old_scope = self.type_scope_stack
+            #   self.type_scope_stack = TypeScopeStack()
+            #   result = self.parse(content)
+            #   self.type_scope_stack = old_scope
+            # ...but but my aesthetic sense tells me this looks slightly better
+            # ...BUT it's probably way worse, as the yacc.yacc function
+            # has to run twice :P oh well, :pray: (the yacc.yacc function uses
+            # caching though, so still it shouldn't be that horrible.
+
+            new_parser = PyGoParser(self.side_effects, None, self.importer)
+            root_elems = []
+            for content in file_contents:
+                # TODO -> Definitely something bad will happen here, since
+                #  we're not handling the case where file2 defines Asdf()
+                #  and file1 uses Asdf(). Need lazier evaluation of types
+                #  in something like a post-parse step.
+                #  >>> confirmed that private members can be used from all
+                #      package files.
+                root_elems.append(new_parser.parse(content))
+
+
+
+
+            t[0] = ast.GopathImport(t[2], new_parser.type_scope_stack)
+
+
+
+        # t[0] = ast.Import(t[2])
 
     def p_conditional_statement_1(self, t):
         """conditional_statement : IF expression new_scope_start block new_scope_end"""
@@ -310,9 +362,18 @@ class PyGoParser:
         """func_body : assignment_statement
                     | return_statement
                     | expression_statement
-                    | func_body func_body
+                    | func_body NEWLINE func_body
+                    | func_body SEMICOLON func_body
+                    | func_body NEWLINE
+                    | func_body SEMICOLON
         """
-        t.slice[0].value = ast.FuncBody([e.value for e in t.slice[1:]])
+        t.slice[0].value = ast.FuncBody([
+            e.value
+            for e in
+            t.slice[1:]
+            if e.type not in [SYNTAX.NEWLINE.value, SYNTAX.SEMICOLON.value]
+            ]
+        )
 
     def p_return_statement(self, t):
         """return_statement : RETURN expression"""

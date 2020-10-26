@@ -190,23 +190,16 @@ class Expression:
         self.type = self.determine_type(child, type_scope)
 
     def determine_type(self, child, type_scope):
-        """
-        :return:
-        """
-        # TODO -> figure out how we build these parse-time scopes
-        #  because they're not the same as the run-time ones.
-        #  At run-time, a function can get called multiple times, and scopes
-        #  will be created and destroyed BUT, the parse-time scopes will be
-        #  static. The names/types in them will not change.
+        """Determine the type of an expression, requirement for type checks
 
-        """
-        SO, determining the type of an expression can't be done in just 1 step
-        because golang has funny-scopes. Names of functions are evaluated
-        lazily, but names of variables are evaluated eagerly.
-        This allows definitions of functions to appear after they're called
-        but doesn't allow usage of variables before they're declared, not even
-        from anonymous functions.
-            
+        TODO -> determining the type of an expression can't be done in just 1
+         step because golang has funny-scopes. Names of functions are evaluated
+         lazily, but names of variables are evaluated eagerly.
+         This allows definitions of functions to appear after they're called
+         but doesn't allow usage of variables before they're declared, not even
+         from anonymous functions.
+
+        :rtype: Type
         """
         if isinstance(child, Name):
             return type_scope.get_variable_type(child.get_qualified_name())
@@ -360,18 +353,14 @@ class Assignment:
 
         self.validate_types()
 
-        # raise NotImplementedError(
-        #     "TODO implement a type check OR mark as solvable later"
-        # )
-
     def validate_types(self):
         target_type = self.type_scope.get_variable_type(self.name[0])
         type_to_assign = self.value.type
 
         if not target_type.is_assignable_from(type_to_assign):
             raise Exception(
-                f"Can't assign type ({type_to_assign}) to variable "
-                f"({self.name}) of type ({target_type})"
+                f"Can't assign type '{type_to_assign}' to variable "
+                f"'{self.name[0]}' of type '{target_type}'"
             )
 
 
@@ -392,8 +381,8 @@ class InterpreterStart:
 
 
 class Root:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, statements):
+        self.statements = statements
 
 
 class Return:
@@ -743,7 +732,7 @@ class NativeFunction(TypedValue):
         return self._params_and_types
 
 
-class Import:
+class GopathImport:
     """
     Importing rules
 
@@ -774,5 +763,21 @@ class Import:
         evaluated. All the uppercase variables in all of them will be available
         via imports
     """
-    def __init__(self, import_str):
+    def __init__(self, import_str, ast_root):
+        """
+        :param str import_str:
+        :param Root ast_root:
+        """
         self.import_str = import_str
+        self.package_scope = ast_root
+
+
+class StdlibImport:
+    def __init__(self, import_str, new_variables):
+        self.import_str = import_str
+        self.new_variables = new_variables
+
+
+class NoopPackageStatement:
+    def __init__(self, name):
+        self.name = name

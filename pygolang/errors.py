@@ -15,4 +15,5 @@ class PyGoGrammarError(Exception):
 
 
 class PyGoConsoleLogoffError(Exception):
-    pass
+    def __init__(self, *a, **kw):
+        super(PyGoConsoleLogoffError, self).__init__(*a, **kw)

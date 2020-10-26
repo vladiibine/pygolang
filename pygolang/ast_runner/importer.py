@@ -61,10 +61,11 @@ class Importer:
         #   to the initial package's scope
         result = []
 
-        # TODO -> implement
+        raise NotImplementedError
 
         return result
 
+    # TODO -> very easy and beneficial to cache this method
     def import_from_gopath(self, import_path):
         """Implements the older dependency resolution mechanism
 

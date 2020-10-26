@@ -1,7 +1,7 @@
 import ply.lex as lex
 
 # Tokens
-from .common_grammar import tokens, keywords_tuple
+from .common_grammar import tokens, keywords_tuple, SYNTAX
 
 
 class PyGoLexer:
@@ -25,6 +25,7 @@ class PyGoLexer:
     t_RBRACKET = r'\]'
     t_COMMA = r','
     t_DOT = r'\.'
+    t_SEMICOLON = r';'
 
     # Boolean operators
     t_GREATER = '>'
@@ -55,8 +56,8 @@ class PyGoLexer:
         :param pygolang.ast.TypeScopeStack type_scope_stack:
         """
         self.side_effects = side_effects
-        self.lexer = self.build_lexer()
-        # self.type_scope_stack = type_scope_stack
+        lexer = lex.lex(module=self)
+        self.lexer = LexerAdapter(lexer)
 
     def t_STRING(self, t):
         r""""(?:[^"\\]|\\.)*\""""
@@ -83,13 +84,49 @@ class PyGoLexer:
             t.value = 0
         return t
 
-    def t_newline(self, t):
+    def t_NEWLINE(self, t):
         r"""\n+"""
+        # TODO -> determine rules for when newlines are allowed
+        #  So far I saw this:
+        #  1. allowed after `(`, `[`, `{`, `,`
+        #  2. required after statements (newline or `;`)
+        #
+        #  ...so given these rules, we should:
+        # 1. Only emit newline when it's NOT right after these symbols: ([{,\n
+        # 2. define newline and semicolon as symbols significant to the parser
+        # 3. include in the definition of a statement that it should end in a
+        #   statement terminator (newline or semicolon)
+        #
         t.lexer.lineno += t.value.count("\n")
+        if self.lexer.previous_token and \
+                self.lexer.previous_token.type not in [
+                    e.value for e in (
+                        SYNTAX.NEWLINE,
+                        SYNTAX.COMMA,
+                        SYNTAX.LBRACE,
+                        SYNTAX.LPAREN,
+                        SYNTAX.LBRACKET,
+                        SYNTAX.SEMICOLON,
+                    )
+                ]:
+            return t
 
     def t_error(self, t):
         self.side_effects.to_stdout("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
 
-    def build_lexer(self):
-        return lex.lex(module=self)
+
+class LexerAdapter:
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.previous_token = None
+
+    def token(self):
+        token = self.lexer.token()
+        self.previous_token = token
+
+        return token
+
+    def input(self, *a, **kw):
+        return self.lexer.input(*a, **kw)
+

@@ -51,6 +51,8 @@ class SYNTAX(enum.Enum):
 
     COMMA = 'COMMA'  # ,
     DOT = 'DOT'  # .
+    SEMICOLON = 'SEMICOLON'  # ;
+    NEWLINE = 'NEWLINE'
 
 
 keywords_tuple = tuple(e.name for e in KEYWORDS)

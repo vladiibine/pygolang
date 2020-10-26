@@ -67,3 +67,30 @@ def test_string_operators():
         'false', 'false',
         'true', 'false',
     ]
+
+
+def test_cant_assign_incompatible_types():
+    side_effects = FakeSideEffects([
+        'var x bool',
+        'x = "asf"',
+    ])
+
+    main(side_effects)
+
+    assert side_effects.stderr
+    assert """Can't assign type 'string' to variable 'x' of type 'bool'""" \
+        in side_effects.stderr[1], side_effects.format_stderr_for_debugging()
+
+
+def test_cant_assign_incompatible_types_from_function_call():
+    side_effects = FakeSideEffects([
+        'var x bool',
+        'func asdf()int{return 4}',
+        'x = asdf()'
+    ])
+
+    main(side_effects)
+
+    assert side_effects.stderr
+    assert """Can't assign type 'int' to variable 'x' of type 'bool'""" in \
+           side_effects.stderr[1], side_effects.format_stderr_for_debugging()

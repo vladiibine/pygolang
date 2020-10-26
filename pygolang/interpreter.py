@@ -5,13 +5,14 @@
 # from ply import yacc, lex
 from pygolang.ast_runner import runner as pygo_runner
 from pygolang import parser_setup
+from pygolang.ast_runner.importer import Importer
 from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
     PyGoConsoleLogoffError
 from pygolang.side_effects import SideEffects
 from . import lexer_setup
 
 
-def main(side_effects=SideEffects(), program_state=None):
+def main(side_effects=SideEffects(), program_state=None, importer=None):
 
     # Weird code, I know. The parser relies on reflection for finding
     # handler function names. It loads stuff from the global variables.
@@ -20,10 +21,10 @@ def main(side_effects=SideEffects(), program_state=None):
 
     program_state = program_state if program_state is not None else {}
 
-    # with lexer_setup.build_lexer(io) as lexer:
-    # pygo_lexer = lexer_setup.PyGoLexer(io)
+    importer = importer or Importer(side_effects)
+
     lexer = lexer_setup.PyGoLexer(side_effects)
-    parser = parser_setup.PyGoParser(side_effects, program_state)
+    parser = parser_setup.PyGoParser(side_effects, program_state, importer, lexer=lexer.lexer)
     runner = pygo_runner.Runner(side_effects, program_state)
 
     while True:
