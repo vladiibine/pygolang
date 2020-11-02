@@ -1,4 +1,4 @@
-from pygolang.ast import ValueNotSet, TypedValue, AbstractRuntimeScope
+from pygolang.ast import ValueNotSet, TypedValue
 from pygolang.errors import PyGoGrammarError
 
 
@@ -96,6 +96,36 @@ class ScopeStack:
 
     def update_first(self, new_scope_variables):
         self.scopes[0].update(new_scope_variables)
+
+
+class AbstractRuntimeScope:
+    def __init__(self, scope_dict):
+        """
+        :param dict[str,object] scope_dict:
+        """
+        self._scope_dict = scope_dict
+
+    def __getitem__(self, item):
+        return self._scope_dict[item]
+
+    def __setitem__(self, key, value):
+        self._scope_dict[key] = value
+
+    def __delitem__(self, key):
+        del self._scope_dict[key]
+
+    def __contains__(self, item):
+        return item in self._scope_dict
+
+    def update(self, new_items_dict):
+        """
+        :param dict[str|object] new_items_dict:
+        :return:
+        """
+        self._scope_dict.update(new_items_dict)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._scope_dict})"
 
 
 class FuncRuntimeScope(AbstractRuntimeScope):

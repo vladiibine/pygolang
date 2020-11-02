@@ -9,7 +9,8 @@ class Interpreter:
         """
 
         :param side_effects:
-        :param dict|ast.AbstractRuntimeScope state: the program's starting
+        :param dict|pygolang.runtime.scopes.AbstractRuntimeScope state: the
+        program's starting
         state
         """
         self.side_effects = side_effects
@@ -20,7 +21,7 @@ class Interpreter:
         if isinstance(state, dict):
             usable_state = pygolang.runtime.scopes.PackageRuntimeScope(state)
 
-        elif isinstance(state, ast.AbstractRuntimeScope):
+        elif isinstance(state, pygolang.runtime.scopes.AbstractRuntimeScope):
             usable_state = state
         else:
             raise Exception(
