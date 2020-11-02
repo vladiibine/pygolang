@@ -1,3 +1,4 @@
+import pygolang.runtime.scopes
 from pygolang import ast
 from pygolang.runtime.importer import Importer
 from pygolang.errors import PyGoGrammarError
@@ -17,7 +18,7 @@ class Interpreter:
         #  method which searches for variables in a list of scopes
         #  AND if it writes something, it writes in the first scope it gets
         if isinstance(state, dict):
-            usable_state = ast.PackageRuntimeScope(state)
+            usable_state = pygolang.runtime.scopes.PackageRuntimeScope(state)
 
         elif isinstance(state, ast.AbstractRuntimeScope):
             usable_state = state
@@ -25,7 +26,7 @@ class Interpreter:
             raise Exception(
                 "The program's state should be a module scope or a dict")
 
-        self.scope_stack = ast.ScopeStack([usable_state])
+        self.scope_stack = pygolang.runtime.scopes.ScopeStack([usable_state])
 
     def run(self, code):
         value = None
