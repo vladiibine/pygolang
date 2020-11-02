@@ -1,4 +1,4 @@
-from pygolang.ast_runner.importer import Importer
+from pygolang.runtime.importer import Importer
 from tests.fake_side_effects import FakeSideEffects
 
 

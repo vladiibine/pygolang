@@ -1,5 +1,5 @@
 from pygolang import ast
-from pygolang.interpreter import main
+from pygolang.repl import main
 from pygolang.stdlib import fmt
 from tests.fake_side_effects import FakeSideEffects
 

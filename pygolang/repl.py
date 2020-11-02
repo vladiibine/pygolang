@@ -3,9 +3,9 @@
 # these names are used via reflection, don't change them,
 # and don't change their order
 # from ply import yacc, lex
-from pygolang.ast_runner import runner as pygo_runner
+from pygolang.runtime import interpreter as pygo_interpreter
 from pygolang import parser_setup
-from pygolang.ast_runner.importer import Importer
+from pygolang.runtime.importer import Importer
 from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
     PyGoConsoleLogoffError
 from pygolang.side_effects import SideEffects
@@ -25,7 +25,7 @@ def main(side_effects=SideEffects(), program_state=None, importer=None):
 
     lexer = lexer_setup.PyGoLexer(side_effects)
     parser = parser_setup.PyGoParser(side_effects, program_state, importer, lexer=lexer.lexer)
-    runner = pygo_runner.Runner(side_effects, program_state)
+    interpreter = pygo_interpreter.Interpreter(side_effects, program_state)
 
     while True:
         try:
@@ -33,7 +33,7 @@ def main(side_effects=SideEffects(), program_state=None, importer=None):
             instruction_set = side_effects.from_stdin()
 
             code = parser.parse(instruction_set)
-            runner.run(code)
+            interpreter.run(code)
 
             side_effects.newline()
             # io.to_stdout("You wrote:\n{}".format(instruction_set))

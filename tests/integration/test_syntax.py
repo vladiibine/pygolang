@@ -1,4 +1,4 @@
-from pygolang.interpreter import main
+from pygolang.repl import main
 from tests.fake_side_effects import FakeSideEffects
 
 

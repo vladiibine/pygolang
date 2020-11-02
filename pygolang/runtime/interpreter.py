@@ -1,11 +1,11 @@
 import importlib
 
 from pygolang import ast
-from pygolang.ast_runner.importer import Importer
+from pygolang.runtime.importer import Importer
 from pygolang.errors import PyGoGrammarError
 
 
-class Runner:
+class Interpreter:
     def __init__(self, side_effects, state, importer=None):
         """
 

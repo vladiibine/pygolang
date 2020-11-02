@@ -9,12 +9,11 @@ $ cd pygolang
 $ python -m venv pygolang-ve
 $ source ./pygolang-ve/bin/activate
 $ pip install -r requirements.txt
-$ python -m pygolang.interpreter
 ```
 
 # Usage
 ```bash
-$ python -m pygolang.interpreter
+$ python -m pygolang.repl
 ```
 
 Examples
