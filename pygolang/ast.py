@@ -763,13 +763,13 @@ class GopathImport:
         evaluated. All the uppercase variables in all of them will be available
         via imports
     """
-    def __init__(self, import_str, ast_root):
+    def __init__(self, import_str, ast_roots):
         """
         :param str import_str:
-        :param Root ast_root:
+        :param list[Root] ast_roots:
         """
         self.import_str = import_str
-        self.package_scope = ast_root
+        self.package_scope = ast_roots
 
 
 class StdlibImport:
@@ -781,3 +781,12 @@ class StdlibImport:
 class NoopPackageStatement:
     def __init__(self, name):
         self.name = name
+
+
+class Package:
+    def __init__(self, pkgname):
+        self.pkgname = pkgname
+
+
+class Separator(object):
+    pass

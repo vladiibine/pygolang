@@ -11,7 +11,8 @@ class StopPyGoLangInterpreterError(Exception):
 
 
 class PyGoGrammarError(Exception):
-    pass
+    def __init__(self, *a, **kw):
+        super(PyGoGrammarError, self).__init__(*a, **kw)
 
 
 class PyGoConsoleLogoffError(Exception):

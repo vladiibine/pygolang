@@ -97,7 +97,7 @@ def test_raises_error_on_missing_semicolon():
     main(side_effects)
 
     assert side_effects.stderr
-    assert len(side_effects.stderr) == 1
+    assert len(side_effects.stderr) == 4, side_effects.format_stderr_for_debugging()
     assert side_effects.stderr[0] == 'pygo: Syntax error at \'4\''
 
 

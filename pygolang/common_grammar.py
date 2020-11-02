@@ -9,6 +9,7 @@ class KEYWORDS(enum.Enum):
     IF = 'IF'
     INT = 'INT'
     IMPORT = 'IMPORT'
+    PACKAGE = 'PACKAGE'
     RETURN = 'RETURN'
     STRING = 'STRING'
     TRUE = 'TRUE'

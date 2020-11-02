@@ -28,14 +28,13 @@ class PyGoParser:
         # ('right', 'UMINUS'),
     )
 
-    start = 'interpreter_start'
-
-    def __init__(self, side_effects, state, importer, lexer):
+    def __init__(self, side_effects, state, importer, lexer, start_symbol='interpreter_start'):
         """
         :param pygolang.side_effects.SideEffects side_effects:
         :param state:
         :param pygolang.ast_runner.importer.Importer importer:
         """
+        self.start = start_symbol
         self.side_effects = side_effects
         self.program_state = state
         self.importer = importer
@@ -45,7 +44,43 @@ class PyGoParser:
         self.parser = yacc.yacc(module=self)
 
     def parse(self, *a, **kw):
-        return self.parser.parse(*a, **kw, lexer=self.lexer)
+        parsed_result = self.parser.parse(*a, **kw, lexer=self.lexer)
+        return parsed_result
+
+    def p_package_file_start(self, t):
+        """package_file_start : package_statement separator import_statement separator other_file_statements
+                                | package_statement separator other_file_statements
+        """
+        if len(t.slice) == 6:
+            t[0] = ast.Root([t[1], t[3]] + t[5])
+        else:
+            t[0] = ast.Root([t[1]] + t[3])
+
+    def p_package_statement(self, t):
+        """package_statement : PACKAGE NAME"""
+        t[0] = ast.Package(t[2])
+
+    def p_separator(self, t):
+        """separator : NEWLINE
+                    | SEMICOLON
+                    | separator separator
+        """
+        t[0] = ast.Separator()
+
+    def p_other_file_statements(self, t):
+        """other_file_statements : func_statement
+                                | declaration_statement
+                                | other_file_statements separator
+                                | other_file_statements separator other_file_statements
+        """
+        if len(t.slice) == 2:
+            t[0] = [t[1]]
+
+        elif len(t.slice) == 3:
+            t[0] = t[1]  # this was already packed in a list above
+
+        elif len(t.slice) == 4:
+            t[0] = t[1] + t[3]  # summing 2 lists
 
     def p_interpreter_start(self, t):
         """interpreter_start : statement
@@ -292,7 +327,14 @@ class PyGoParser:
             # has to run twice :P oh well, :pray: (the yacc.yacc function uses
             # caching though, so still it shouldn't be that horrible.
 
-            new_parser = PyGoParser(self.side_effects, None, self.importer)
+            # TODO -> very important for performance, need to specify the file
+            #  where to cache the parsing rules for imported module.
+            #  The current file `parsetab.py` is suitable only for parsing
+            #  command in the REPL, and NOT for importing files
+            new_parser = PyGoParser(
+                self.side_effects, None, self.importer, self.lexer,
+                start_symbol='package_file_start'
+            )
             root_elems = []
             for content in file_contents:
                 # TODO -> Definitely something bad will happen here, since
@@ -303,10 +345,7 @@ class PyGoParser:
                 #      package files.
                 root_elems.append(new_parser.parse(content))
 
-
-
-
-            t[0] = ast.GopathImport(t[2], new_parser.type_scope_stack)
+            t[0] = ast.GopathImport(t[2], root_elems)
 
 
 
@@ -476,4 +515,4 @@ class PyGoParser:
     def p_error(self, t):
         if t and hasattr(t, 'value'):
             self.side_effects.to_stderr("pygo: Syntax error at '%s'" % t.value)
-        raise PyGoConsoleLogoffError
+        raise PyGoGrammarError
