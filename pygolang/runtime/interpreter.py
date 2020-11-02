@@ -199,30 +199,6 @@ class Interpreter:
 
         return value
 
-    # TODO - move this to another class
-    @staticmethod
-    def import_from_stdlib(import_stmt):
-        """Import names from the standard library
-        (functionality re-implemented in python)
-
-        :param pygolang.ast.Import import_stmt:
-        """
-        new_variables = []
-        try:
-            module = importlib.import_module(
-                f'.stdlib.{import_stmt.import_str}', 'pygolang'
-            )
-
-            for name in dir(module):
-                obj = getattr(module, name)
-                if isinstance(obj, ast.NativeFunction):
-                    qualified_name = '.'.join([import_stmt.import_str, name])
-                    new_variables.append((qualified_name, obj.type, obj))
-        except ImportError:
-            pass
-
-        return new_variables
-
     def set_in_scopes(self, name, value, scopes):
         """
 
