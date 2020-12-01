@@ -11,8 +11,14 @@ class ScopeStack:
      classes
 
     """
-    def __init__(self, initial_state=None):
-        self.scopes = initial_state or []
+    def __init__(self, global_namespace, package_name):
+        """
+
+        :param GlobalNamespace global_namespace:
+        :param str package_name:
+        """
+        self.global_namespace = global_namespace
+        self.scopes = ([global_namespace[package_name]])
 
     def push(self, scope):
         self.scopes.insert(0, scope)
@@ -146,6 +152,15 @@ class GlobalNamespace(GenericRuntimeNamespace):
     This is the namespace of packages
     "package/name" -> <packageRuntimeNamespace>
     """
+
+
+class PackageNamespace(GenericRuntimeNamespace):
+    """Keeps track of all variables in the package namespace
+
+    Basically a glorified dict: {"variable name": "AST object"}
+    All files in the package will have access to these variables
+    """
+    pass
 
 
 class BlockRuntimeScope(GenericRuntimeNamespace):

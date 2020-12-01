@@ -1,5 +1,6 @@
 from pygolang import ast
 from pygolang.repl import main
+from pygolang.runtime.namespaces import GlobalNamespace, PackageNamespace
 
 from tests.fake_side_effects import FakeSideEffects
 
@@ -17,7 +18,7 @@ def test_parse_bool_explicit():
     io = FakeSideEffects(["var x bool = true"])
 
     scope = {}
-    main(io, scope)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(scope)}))
 
     assert not io.stderr
     assert not io.stdout

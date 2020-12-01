@@ -4,16 +4,16 @@ from pygolang.runtime.importer import Importer
 
 
 class Interpreter:
-    def __init__(self, side_effects, state, importer=None):
+    def __init__(self, side_effects, state, package_name='main', importer=None):
         """
 
         :param side_effects:
-        :param pygolang.runtime.namespaces.FileRuntimeNamespace state: the
+        :param pygolang.runtime.namespaces.GlobalNamespace state: the
             program's starting state
         """
         self.side_effects = side_effects
         self.importer = importer or Importer(side_effects)
-        self.scope_stack = namespaces.ScopeStack([state])
+        self.scope_stack = namespaces.ScopeStack(state, package_name)
 
     def run(self, code):
         value = None

@@ -1,5 +1,6 @@
 from pygolang import ast
 from pygolang.repl import main
+from pygolang.runtime.namespaces import GlobalNamespace, PackageNamespace
 
 from tests.fake_side_effects import FakeSideEffects
 
@@ -16,7 +17,7 @@ func asdf(name1 int)int{
     ])
 
     state = {}
-    main(io, program_state=state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     # A function was just declared. Nothing printed
     assert not io.stderr, io.format_stderr_for_debugging()
@@ -38,7 +39,7 @@ def test_calling_function_containing_only_a_return_statement():
     ])
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert 'x' in state
     assert state['x'][0] == ast.Int(133)
@@ -51,7 +52,7 @@ def test_calling_function_that_returns_an_argument():
     ])
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert 'x' in state
     assert state['x'][0] == ast.Int(3)
@@ -64,7 +65,7 @@ def test_calling_function_without_params():
     ])
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert io.stdout == ['2']
 

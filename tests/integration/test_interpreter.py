@@ -1,5 +1,6 @@
 from pygolang import ast
 from pygolang.repl import main
+from pygolang.runtime.namespaces import GlobalNamespace, PackageNamespace
 from tests.fake_side_effects import FakeSideEffects
 
 
@@ -11,7 +12,7 @@ def test_prints_expressions_to_stdout():
     ])
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert io.stdout
     assert len(io.stdout) == 2
@@ -26,7 +27,7 @@ def test_assignment_from_variable():
     ])
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert io.stdout
     assert len(io.stdout) == 1
@@ -51,7 +52,7 @@ def test_interpreter_prints_out_things():
 
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert not io.stderr, '\n'.join(str(e) for e in io.stderr)
     assert io.stdout
@@ -67,7 +68,7 @@ def test_operators_and_expressions():
 
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['4']
@@ -82,8 +83,7 @@ def test_parses_multiple_operations_in_one_gulp():
         fmt.Println(x)
         """
     ])
-    scope = {}
-    main(side_effects, scope)
+    main(side_effects)
 
     assert not side_effects.stderr, side_effects.format_stderr_for_debugging()
     assert side_effects.stdout == ['4']

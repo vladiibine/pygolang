@@ -1,5 +1,6 @@
 from pygolang import ast
 from pygolang.repl import main
+from pygolang.runtime.namespaces import GlobalNamespace, PackageNamespace
 
 from tests.fake_side_effects import FakeSideEffects
 
@@ -13,9 +14,7 @@ def test_int_arithmetic_operators():
         '17 % 13',
     ])
 
-    state = {}
-
-    main(io, state)
+    main(io)
 
     assert not io.stderr, io.format_stderr_for_debugging()
     assert io.stdout == ['2', '0', '6', '1', '4']
@@ -27,7 +26,7 @@ def test_walrus_plus():
 
     state = {}
 
-    main(io, state)
+    main(io, lambda: GlobalNamespace({'main': PackageNamespace(state)}))
 
     assert not io.stderr, io.format_stderr_for_debugging()
     assert state['x'][0] == ast.Int(1)

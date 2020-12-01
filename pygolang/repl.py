@@ -8,27 +8,31 @@ from pygolang import parser_setup
 from pygolang.runtime.importer import Importer
 from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
     PyGoConsoleLogoffError
-from pygolang.runtime.namespaces import FileRuntimeNamespace
+from pygolang.runtime.namespaces import FileRuntimeNamespace, GlobalNamespace, \
+    PackageNamespace
 from pygolang.side_effects import SideEffects
 from . import lexer_setup
 
 
-def main(side_effects=SideEffects(), program_state=None, importer=None):
+def main(
+        side_effects=SideEffects(),
+        program_state_factory=lambda: GlobalNamespace({'main': PackageNamespace({})}),
+        importer=None):
 
     # Weird code, I know. The parser relies on reflection for finding
     # handler function names. It loads stuff from the global variables.
     # The module used for loading stuff I ASSUME is the one where the lexer
     # and parser are initialized.
 
-    program_state = program_state if program_state is not None else {}
+    # program_state = program_state if program_state is not None else {}
 
     importer = importer or Importer(side_effects)
 
     lexer = lexer_setup.PyGoLexer(side_effects)
     parser = parser_setup.PyGoParser(side_effects, importer, lexer=lexer.lexer)
 
-    program_namespace = FileRuntimeNamespace(program_state)
-    interpreter = pygo_interpreter.Interpreter(side_effects, program_namespace)
+    # program_namespace = FileRuntimeNamespace(program_state)
+    interpreter = pygo_interpreter.Interpreter(side_effects, program_state_factory())
 
     while True:
         try:
