@@ -98,7 +98,7 @@ class ScopeStack:
         self.scopes[0].update(new_scope_variables)
 
 
-class AbstractRuntimeScope:
+class GenericRuntimeNamespace:
     def __init__(self, scope_dict):
         """
         :param dict[str,object] scope_dict:
@@ -128,13 +128,25 @@ class AbstractRuntimeScope:
         return f"{self.__class__.__name__}({self._scope_dict})"
 
 
-class FuncRuntimeScope(AbstractRuntimeScope):
+class FuncRuntimeScope(GenericRuntimeNamespace):
     pass
 
 
-class PackageRuntimeScope(AbstractRuntimeScope):
+class FileRuntimeNamespace(GenericRuntimeNamespace):
+    """Keeps track of the file's imports, and the package namespace
+
+    In go, all files in the same package share all variables DEFINED in them
+    They don't share the IMPORTS
+    """
     pass
 
 
-class BlockRuntimeScope(AbstractRuntimeScope):
+class GlobalNamespace(GenericRuntimeNamespace):
+    """
+    This is the namespace of packages
+    "package/name" -> <packageRuntimeNamespace>
+    """
+
+
+class BlockRuntimeScope(GenericRuntimeNamespace):
     pass

@@ -28,15 +28,13 @@ class PyGoParser:
         # ('right', 'UMINUS'),
     )
 
-    def __init__(self, side_effects, state, importer, lexer, start_symbol='interpreter_start'):
+    def __init__(self, side_effects, importer, lexer, start_symbol='interpreter_start'):
         """
         :param pygolang.side_effects.SideEffects side_effects:
-        :param state:
         :param pygolang.ast_runner.importer.Importer importer:
         """
         self.start = start_symbol
         self.side_effects = side_effects
-        self.program_state = state
         self.importer = importer
         self.lexer = lexer
 

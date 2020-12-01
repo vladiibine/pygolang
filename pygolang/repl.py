@@ -8,6 +8,7 @@ from pygolang import parser_setup
 from pygolang.runtime.importer import Importer
 from pygolang.errors import PyLangRuntimeError, StopPyGoLangInterpreterError, \
     PyGoConsoleLogoffError
+from pygolang.runtime.namespaces import FileRuntimeNamespace
 from pygolang.side_effects import SideEffects
 from . import lexer_setup
 
@@ -24,8 +25,10 @@ def main(side_effects=SideEffects(), program_state=None, importer=None):
     importer = importer or Importer(side_effects)
 
     lexer = lexer_setup.PyGoLexer(side_effects)
-    parser = parser_setup.PyGoParser(side_effects, program_state, importer, lexer=lexer.lexer)
-    interpreter = pygo_interpreter.Interpreter(side_effects, program_state)
+    parser = parser_setup.PyGoParser(side_effects, importer, lexer=lexer.lexer)
+
+    program_namespace = FileRuntimeNamespace(program_state)
+    interpreter = pygo_interpreter.Interpreter(side_effects, program_namespace)
 
     while True:
         try:

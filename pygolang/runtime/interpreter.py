@@ -1,7 +1,6 @@
-import pygolang.runtime.scopes
+from pygolang.runtime import namespaces
 from pygolang import ast
 from pygolang.runtime.importer import Importer
-from pygolang.errors import PyGoGrammarError
 
 
 class Interpreter:
@@ -9,25 +8,12 @@ class Interpreter:
         """
 
         :param side_effects:
-        :param dict|pygolang.runtime.scopes.AbstractRuntimeScope state: the
-        program's starting
-        state
+        :param pygolang.runtime.namespaces.FileRuntimeNamespace state: the
+            program's starting state
         """
         self.side_effects = side_effects
         self.importer = importer or Importer(side_effects)
-        # TODO -> access to this needs to be replaced with a call to a
-        #  method which searches for variables in a list of scopes
-        #  AND if it writes something, it writes in the first scope it gets
-        if isinstance(state, dict):
-            usable_state = pygolang.runtime.scopes.PackageRuntimeScope(state)
-
-        elif isinstance(state, pygolang.runtime.scopes.AbstractRuntimeScope):
-            usable_state = state
-        else:
-            raise Exception(
-                "The program's state should be a module scope or a dict")
-
-        self.scope_stack = pygolang.runtime.scopes.ScopeStack([usable_state])
+        self.scope_stack = namespaces.ScopeStack([state])
 
     def run(self, code):
         value = None
